@@ -14,14 +14,18 @@ const path = require('path');
 const { Pool } = require('pg');
 const env = require('../config/env');
 
-const pool = new Pool({
-  host: env.db.host,
-  port: env.db.port,
-  database: env.db.name,
-  user: env.db.user,
-  password: env.db.password,
-  ssl: env.db.ssl ? { rejectUnauthorized: false } : false,
-});
+const poolConfig = env.db.connectionString
+  ? { connectionString: env.db.connectionString, ssl: { rejectUnauthorized: false } }
+  : {
+      host: env.db.host,
+      port: env.db.port,
+      database: env.db.name,
+      user: env.db.user,
+      password: env.db.password,
+      ssl: env.db.ssl ? { rejectUnauthorized: false } : false,
+    };
+
+const pool = new Pool(poolConfig);
 
 const run = async () => {
   const schemaPath = path.join(__dirname, 'schema.sql');
