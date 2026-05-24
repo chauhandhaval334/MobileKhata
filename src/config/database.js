@@ -24,8 +24,8 @@ const poolConfig = env.db.connectionString
 
 const pool = new Pool({
   ...poolConfig,
-  max: 20,
-  idleTimeoutMillis: 600000,       // 10 min — prevent idle drop
+  max: 5,                          // Neon free tier: max 10 connections
+  idleTimeoutMillis: 30000,        // 30s — recycle before Neon's 5-min idle kill
   connectionTimeoutMillis: 10000,  // 10s to acquire connection
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,

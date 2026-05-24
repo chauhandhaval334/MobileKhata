@@ -26,6 +26,9 @@ const adminRoutes       = require('./routes/adminRoutes');
 
 const app = express();
 
+// Trust Render/proxy X-Forwarded-For header (required for rate limiting behind reverse proxy)
+app.set('trust proxy', 1);
+
 // ─── Security Middleware ───────────────────────────────────────────────────────
 
 app.use(helmet({
