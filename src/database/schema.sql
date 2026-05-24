@@ -144,13 +144,14 @@ CREATE TABLE IF NOT EXISTS transaction_media (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     transaction_id   UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
     shop_id          UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-    file_path        TEXT NOT NULL,             -- relative path from uploads root
-    file_name        TEXT NOT NULL,             -- original filename
+    file_path        TEXT NOT NULL DEFAULT '',  -- relative path from uploads root (legacy)
+    firebase_url     TEXT NOT NULL DEFAULT '',  -- Firebase Storage download URL
+    file_name        TEXT NOT NULL DEFAULT '',  -- original filename
     mime_type        TEXT NOT NULL DEFAULT '',
     file_size_bytes  INTEGER NOT NULL DEFAULT 0,
     category         TEXT NOT NULL DEFAULT 'other'
                      CHECK (category IN ('aadhaar_front','aadhaar_back','pan','invoice',
-                                         'customer_photo','device_image','warranty','other')),
+                                         'customer_photo','device_image','warranty','bill','other')),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

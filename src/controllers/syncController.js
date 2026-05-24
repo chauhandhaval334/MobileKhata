@@ -120,6 +120,28 @@ const pushSync = async (req, res) => {
            `₹${entry.amount}`, txnDate]
         );
 
+        // Save media URLs (Firebase Storage URLs sent from Android)
+        const mediaItems = [
+          ...(entry.mediaUris        || []).map(url => ({ url, category: 'device_image' })),
+          ...(entry.invoiceUris      || []).map(url => ({ url, category: 'invoice' })),
+          ...(entry.billUris         || []).map(url => ({ url, category: 'bill' })),
+          ...(entry.warrantyUris     || []).map(url => ({ url, category: 'warranty' })),
+          ...(entry.otherDocUris     || []).map(url => ({ url, category: 'other' })),
+          ...(entry.aadhaarFrontUri  ? [{ url: entry.aadhaarFrontUri,  category: 'aadhaar_front'   }] : []),
+          ...(entry.aadhaarBackUri   ? [{ url: entry.aadhaarBackUri,   category: 'aadhaar_back'    }] : []),
+          ...(entry.panUri           ? [{ url: entry.panUri,           category: 'pan'             }] : []),
+          ...(entry.customerPhotoUri ? [{ url: entry.customerPhotoUri, category: 'customer_photo'  }] : []),
+        ].filter(m => m.url && m.url.startsWith('https://'));
+
+        for (const media of mediaItems) {
+          await client.query(
+            `INSERT INTO transaction_media (transaction_id, shop_id, firebase_url, category)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT DO NOTHING`,
+            [txnRes.rows[0].id, shopId, media.url, media.category]
+          );
+        }
+
         // Log sync
         await client.query(
           `INSERT INTO sync_log
@@ -185,9 +207,43 @@ const pullSync = async (req, res) => {
     [shopId, sinceDate]
   );
 
+  // Fetch media for all pulled transactions
+  const txnIds = result.rows.map(r => r.transactionId).filter(Boolean);
+  let mediaMap = {};
+  if (txnIds.length > 0) {
+    const mediaResult = await query(
+      `SELECT tm.firebase_url AS "firebaseUrl", tm.category,
+              t.android_txn_id AS "transactionId"
+       FROM transaction_media tm
+       JOIN transactions t ON t.id = tm.transaction_id
+       WHERE t.shop_id = $1
+         AND t.android_txn_id = ANY($2)
+         AND tm.firebase_url != ''`,
+      [shopId, txnIds]
+    );
+    for (const row of mediaResult.rows) {
+      if (!mediaMap[row.transactionId]) mediaMap[row.transactionId] = [];
+      mediaMap[row.transactionId].push({ firebaseUrl: row.firebaseUrl, category: row.category });
+    }
+  }
+
+  // Attach media arrays to each transaction
+  const transactions = result.rows.map(row => ({
+    ...row,
+    mediaUris:       (mediaMap[row.transactionId] || []).filter(m => m.category === 'device_image').map(m => m.firebaseUrl),
+    invoiceUris:     (mediaMap[row.transactionId] || []).filter(m => m.category === 'invoice').map(m => m.firebaseUrl),
+    billUris:        (mediaMap[row.transactionId] || []).filter(m => m.category === 'bill').map(m => m.firebaseUrl),
+    warrantyUris:    (mediaMap[row.transactionId] || []).filter(m => m.category === 'warranty').map(m => m.firebaseUrl),
+    otherDocUris:    (mediaMap[row.transactionId] || []).filter(m => m.category === 'other').map(m => m.firebaseUrl),
+    aadhaarFrontUri: (mediaMap[row.transactionId] || []).find(m => m.category === 'aadhaar_front')?.firebaseUrl || '',
+    aadhaarBackUri:  (mediaMap[row.transactionId] || []).find(m => m.category === 'aadhaar_back')?.firebaseUrl  || '',
+    panUri:          (mediaMap[row.transactionId] || []).find(m => m.category === 'pan')?.firebaseUrl           || '',
+    customerPhotoUri:(mediaMap[row.transactionId] || []).find(m => m.category === 'customer_photo')?.firebaseUrl|| '',
+  }));
+
   return success(res, {
-    transactions: result.rows,
-    count: result.rows.length,
+    transactions,
+    count: transactions.length,
     pulledAt: new Date().toISOString(),
   });
 };
