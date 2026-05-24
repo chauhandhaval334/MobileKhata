@@ -5,6 +5,7 @@ const { body } = require('express-validator');
 const { verifyFirebaseToken, requireShop } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { setupShop, getProfile, getStats } = require('../controllers/shopController');
+const { getFeatures } = require('../controllers/featuresController');
 
 const router = Router();
 
@@ -43,5 +44,11 @@ router.get('/profile', requireShop, getProfile);
  * Dashboard stats — total sales, purchases, stock, customers.
  */
 router.get('/stats', requireShop, getStats);
+
+/**
+ * GET /api/v1/shop/features
+ * Get feature flags for the authenticated user's shop.
+ */
+router.get('/features', requireShop, getFeatures);
 
 module.exports = router;

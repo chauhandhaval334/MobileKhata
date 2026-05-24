@@ -4,6 +4,7 @@ const { Router } = require('express');
 const { query } = require('../config/database');
 const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth');
 const { success, paginate } = require('../utils/response');
+const { setFeatures, listAllFeatures } = require('../controllers/featuresController');
 
 const router = Router();
 
@@ -109,5 +110,18 @@ router.get('/stats', async (req, res) => {
     transactions:   txnsRes.rows,
   });
 });
+
+/**
+ * GET /api/v1/admin/features
+ * List all shops and their feature flags.
+ */
+router.get('/features', listAllFeatures);
+
+/**
+ * POST /api/v1/admin/features/:shopId
+ * Set feature flags for a specific shop.
+ * Body: { canSell: bool, canPurchase: bool, canReports: bool }
+ */
+router.post('/features/:shopId', setFeatures);
 
 module.exports = router;
