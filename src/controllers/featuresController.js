@@ -89,7 +89,7 @@ const listAllFeatures = async (req, res) => {
  */
 const getPlans = async (req, res) => {
   return success(res, {
-    supportWhatsapp: '+917016311111',  // ← change this to your WhatsApp number
+    supportWhatsapp: '+918160707979',
     plans: [
       {
         id:       'plan_6m',
