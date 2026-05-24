@@ -161,22 +161,21 @@ const pullSync = async (req, res) => {
 
   const result = await query(
     `SELECT
-       t.id AS server_id,
-       t.android_txn_id,
-       t.txn_type AS transaction_type,
+       t.android_txn_id        AS "transactionId",
+       t.txn_type               AS "transactionType",
        t.amount,
-       t.payment_method,
+       t.payment_method         AS "paymentMethod",
        t.remarks,
-       EXTRACT(EPOCH FROM t.txn_date) * 1000 AS created_at_millis,
+       (EXTRACT(EPOCH FROM t.txn_date) * 1000)::BIGINT AS "createdAtMillis",
        d.brand, d.model, d.storage, d.color, d.imei1, d.imei2,
-       d.condition_label AS condition,
-       c.full_name AS customer_name,
-       c.mobile AS customer_mobile,
-       c.address AS customer_address,
-       c.state AS customer_state,
-       c.district AS customer_district,
-       c.pin_code AS customer_pin_code,
-       c.aadhaar_number,
+       d.condition_label        AS "condition",
+       c.full_name              AS "customerName",
+       c.mobile                 AS "customerMobile",
+       c.address                AS "customerAddress",
+       c.state                  AS "customerState",
+       c.district               AS "customerDistrict",
+       c.pin_code               AS "customerPinCode",
+       c.aadhaar_number         AS "aadhaarNumber",
        c.gstin
      FROM transactions t
      JOIN devices   d ON d.id = t.device_id
