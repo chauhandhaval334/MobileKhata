@@ -82,4 +82,39 @@ const listAllFeatures = async (req, res) => {
   return success(res, result.rows);
 };
 
-module.exports = { getFeatures, setFeatures, listAllFeatures };
+/**
+ * GET /api/v1/shop/plans
+ * Returns available premium plans and support contact.
+ * Public within auth — no shop required.
+ */
+const getPlans = async (req, res) => {
+  return success(res, {
+    supportWhatsapp: '+917016311111',  // ← change this to your WhatsApp number
+    plans: [
+      {
+        id:       'plan_6m',
+        name:     '6 Months',
+        nameHi:   '6 महीने',
+        nameGu:   '6 મહિના',
+        price:    699,
+        currency: '₹',
+        duration: 6,
+        unit:     'months',
+        popular:  false,
+      },
+      {
+        id:       'plan_1y',
+        name:     '1 Year',
+        nameHi:   '1 साल',
+        nameGu:   '1 વર્ષ',
+        price:    799,
+        currency: '₹',
+        duration: 12,
+        unit:     'months',
+        popular:  true,
+      },
+    ],
+  });
+};
+
+module.exports = { getFeatures, setFeatures, listAllFeatures, getPlans };

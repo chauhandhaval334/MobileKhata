@@ -5,7 +5,7 @@ const { body } = require('express-validator');
 const { verifyFirebaseToken, requireShop } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { setupShop, getProfile, getStats } = require('../controllers/shopController');
-const { getFeatures } = require('../controllers/featuresController');
+const { getFeatures, getPlans } = require('../controllers/featuresController');
 
 const router = Router();
 
@@ -50,5 +50,11 @@ router.get('/stats', requireShop, getStats);
  * Get feature flags for the authenticated user's shop.
  */
 router.get('/features', requireShop, getFeatures);
+
+/**
+ * GET /api/v1/shop/plans
+ * Premium plan list + support WhatsApp number.
+ */
+router.get('/plans', getPlans);
 
 module.exports = router;
