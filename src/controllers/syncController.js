@@ -1,7 +1,7 @@
 'use strict';
 
 const { query, withTransaction } = require('../config/database');
-const { success, created } = require('../utils/response');
+const { success, created, forbidden } = require('../utils/response');
 const logger = require('../utils/logger');
 
 /**
@@ -26,6 +26,25 @@ const pushSync = async (req, res) => {
   if (transactions.length === 0) {
     return success(res, { synced: 0, skipped: 0, failed: 0 }, 'Nothing to sync');
   }
+
+  // ── Server-side feature gate ──────────────────────────────────────────────
+  // Fetch this shop's feature flags. If no row → all locked.
+  const featResult = await query(
+    `SELECT can_sell, can_purchase FROM user_features WHERE shop_id = $1`,
+    [shopId]
+  );
+  const flags = featResult.rows[0] || { can_sell: false, can_purchase: false };
+
+  const hasSale     = transactions.some(t => (t.transactionType || '').toLowerCase() === 'sale');
+  const hasPurchase = transactions.some(t => (t.transactionType || '').toLowerCase() === 'purchase');
+
+  if (hasSale && !flags.can_sell) {
+    return forbidden(res, 'Sell feature is not enabled for your account. Contact admin.', 'FEATURE_LOCKED');
+  }
+  if (hasPurchase && !flags.can_purchase) {
+    return forbidden(res, 'Purchase feature is not enabled for your account. Contact admin.', 'FEATURE_LOCKED');
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   let synced = 0;
   let skipped = 0;
