@@ -1,0 +1,14 @@
+node_modules/
+.env
+# Ignore upload contents but keep directory structure
+uploads/**
+!uploads/**/.gitkeep
+# Ignore log contents but keep directory
+logs/**
+!logs/.gitkeep
+*.log
+*.pem
+*.key
+firebase-service-account.json
+dist/
+.DS_Store
