@@ -48,13 +48,15 @@ CREATE INDEX IF NOT EXISTS idx_shops_firebase_uid ON shops(firebase_uid);
 -- Per-shop feature flags. All OFF by default — admin enables.
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_features (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    shop_id         UUID NOT NULL UNIQUE REFERENCES shops(id) ON DELETE CASCADE,
-    can_sell        BOOLEAN NOT NULL DEFAULT FALSE,
-    can_purchase    BOOLEAN NOT NULL DEFAULT FALSE,
-    can_reports     BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shop_id             UUID NOT NULL UNIQUE REFERENCES shops(id) ON DELETE CASCADE,
+    can_sell            BOOLEAN NOT NULL DEFAULT FALSE,
+    can_purchase        BOOLEAN NOT NULL DEFAULT FALSE,
+    can_reports         BOOLEAN NOT NULL DEFAULT FALSE,
+    free_entries_limit  INTEGER NOT NULL DEFAULT 3,
+    free_entries_used   INTEGER NOT NULL DEFAULT 0,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_features_shop_id ON user_features(shop_id);

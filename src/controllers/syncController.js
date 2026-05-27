@@ -28,13 +28,18 @@ const pushSync = async (req, res) => {
   }
 
   // ── Server-side feature gate ──────────────────────────────────────────────
-  // Fetch this shop's feature flags. If no row → all locked.
+  // Fetch this shop's feature flags. If no row → free tier defaults.
   const featResult = await query(
-    `SELECT can_sell, can_purchase FROM user_features WHERE shop_id = $1`,
+    `SELECT can_sell, can_purchase, can_reports, free_entries_limit, free_entries_used
+     FROM user_features WHERE shop_id = $1`,
     [shopId]
   );
-  const flags = featResult.rows[0] || { can_sell: false, can_purchase: false };
+  const flags = featResult.rows[0] || {
+    can_sell: false, can_purchase: false, can_reports: false,
+    free_entries_limit: 3, free_entries_used: 0,
+  };
 
+  const isPremium   = flags.can_sell || flags.can_purchase;
   const hasSale     = transactions.some(t => (t.transactionType || '').toLowerCase() === 'sale');
   const hasPurchase = transactions.some(t => (t.transactionType || '').toLowerCase() === 'purchase');
 
@@ -43,6 +48,22 @@ const pushSync = async (req, res) => {
   }
   if (hasPurchase && !flags.can_purchase) {
     return forbidden(res, 'Purchase feature is not enabled for your account. Contact admin.', 'FEATURE_LOCKED');
+  }
+
+  // Free tier limit: count only NEW transactions (not already synced)
+  if (!isPremium) {
+    const existingCount = await query(
+      `SELECT COUNT(*) FROM transactions WHERE shop_id = $1`, [shopId]
+    );
+    const currentTotal = parseInt(existingCount.rows[0].count, 10);
+    const newTxnCount = transactions.length;
+    if (currentTotal + newTxnCount > flags.free_entries_limit) {
+      return forbidden(
+        res,
+        `Free plan allows only ${flags.free_entries_limit} entries. You have ${currentTotal} entries. Upgrade to premium.`,
+        'FREE_LIMIT_EXCEEDED'
+      );
+    }
   }
   // ─────────────────────────────────────────────────────────────────────────
 
