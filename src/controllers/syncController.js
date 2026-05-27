@@ -30,16 +30,16 @@ const pushSync = async (req, res) => {
   // ── Server-side feature gate ──────────────────────────────────────────────
   // Fetch this shop's feature flags. If no row → free tier defaults.
   const featResult = await query(
-    `SELECT can_sell, can_purchase, can_reports, free_entries_limit, free_entries_used
+    `SELECT can_sell, can_purchase, can_repair, can_reports, free_entries_limit, free_entries_used
      FROM user_features WHERE shop_id = $1`,
     [shopId]
   );
   const flags = featResult.rows[0] || {
-    can_sell: false, can_purchase: false, can_reports: false,
+    can_sell: false, can_purchase: false, can_repair: false, can_reports: false,
     free_entries_limit: 3, free_entries_used: 0,
   };
 
-  const isPremium = flags.can_sell || flags.can_purchase;
+  const isPremium = flags.can_sell || flags.can_purchase || flags.can_repair;
 
   // Free tier limit: block if total would exceed limit
   if (!isPremium) {

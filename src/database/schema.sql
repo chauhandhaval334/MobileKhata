@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS user_features (
     shop_id             UUID NOT NULL UNIQUE REFERENCES shops(id) ON DELETE CASCADE,
     can_sell            BOOLEAN NOT NULL DEFAULT FALSE,
     can_purchase        BOOLEAN NOT NULL DEFAULT FALSE,
+    can_repair          BOOLEAN NOT NULL DEFAULT FALSE,
     can_reports         BOOLEAN NOT NULL DEFAULT FALSE,
     free_entries_limit  INTEGER NOT NULL DEFAULT 3,
     free_entries_used   INTEGER NOT NULL DEFAULT 0,

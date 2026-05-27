@@ -13,15 +13,14 @@ const getFeatures = async (req, res) => {
   const shopId = req.shop.id;
 
   const result = await query(
-    `SELECT can_sell, can_purchase, can_reports, free_entries_limit, free_entries_used
+    `SELECT can_sell, can_purchase, can_repair, can_reports, free_entries_limit, free_entries_used
      FROM user_features WHERE shop_id = $1`,
     [shopId]
   );
 
   if (result.rows.length === 0) {
-    // No row yet — all features locked, free tier with 3 entries
     return success(res, {
-      canSell: false, canPurchase: false, canReports: false,
+      canSell: false, canPurchase: false, canRepair: false, canReports: false,
       freeEntriesLimit: 3, freeEntriesUsed: 0,
     });
   }
@@ -30,6 +29,7 @@ const getFeatures = async (req, res) => {
   return success(res, {
     canSell:          row.can_sell,
     canPurchase:      row.can_purchase,
+    canRepair:        row.can_repair,
     canReports:       row.can_reports,
     freeEntriesLimit: row.free_entries_limit,
     freeEntriesUsed:  row.free_entries_used,
@@ -43,11 +43,12 @@ const getFeatures = async (req, res) => {
  */
 const setFeatures = async (req, res) => {
   const { shopId } = req.params;
-  const { canSell, canPurchase, canReports, freeEntriesLimit, freeEntriesUsed } = req.body;
+  const { canSell, canPurchase, canRepair, canReports, freeEntriesLimit, freeEntriesUsed } = req.body;
 
   if (typeof canSell !== 'boolean' || typeof canPurchase !== 'boolean' || typeof canReports !== 'boolean') {
     return badRequest(res, 'canSell, canPurchase, canReports must all be booleans');
   }
+  const repair = typeof canRepair === 'boolean' ? canRepair : false;
 
   // Verify shop exists
   const shopCheck = await query(`SELECT id FROM shops WHERE id = $1`, [shopId]);
@@ -59,20 +60,21 @@ const setFeatures = async (req, res) => {
   const used  = typeof freeEntriesUsed  === 'number' ? freeEntriesUsed  : 0;
 
   await query(
-    `INSERT INTO user_features (shop_id, can_sell, can_purchase, can_reports, free_entries_limit, free_entries_used)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO user_features (shop_id, can_sell, can_purchase, can_repair, can_reports, free_entries_limit, free_entries_used)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (shop_id) DO UPDATE SET
        can_sell            = EXCLUDED.can_sell,
        can_purchase        = EXCLUDED.can_purchase,
+       can_repair          = EXCLUDED.can_repair,
        can_reports         = EXCLUDED.can_reports,
        free_entries_limit  = EXCLUDED.free_entries_limit,
        free_entries_used   = EXCLUDED.free_entries_used,
        updated_at          = NOW()`,
-    [shopId, canSell, canPurchase, canReports, limit, used]
+    [shopId, canSell, canPurchase, repair, canReports, limit, used]
   );
 
-  logger.info('Feature flags updated', { shopId, canSell, canPurchase, canReports, freeEntriesLimit: limit, freeEntriesUsed: used });
-  return success(res, { shopId, canSell, canPurchase, canReports, freeEntriesLimit: limit, freeEntriesUsed: used }, 'Features updated');
+  logger.info('Feature flags updated', { shopId, canSell, canPurchase, canRepair: repair, canReports, freeEntriesLimit: limit, freeEntriesUsed: used });
+  return success(res, { shopId, canSell, canPurchase, canRepair: repair, canReports, freeEntriesLimit: limit, freeEntriesUsed: used }, 'Features updated');
 };
 
 /**
