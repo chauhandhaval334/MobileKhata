@@ -195,7 +195,22 @@ const pushSync = async (req, res) => {
 
   logger.info('Sync push completed', { shopId, synced, skipped, failed });
 
-  return created(res, { synced, skipped, failed, errors }, 'Sync push completed');
+  // Update free_entries_used with actual server count (source of truth)
+  const totalCount = await query(
+    `SELECT COUNT(*) FROM transactions WHERE shop_id = $1`, [shopId]
+  );
+  const totalNow = parseInt(totalCount.rows[0].count, 10);
+
+  await query(
+    `INSERT INTO user_features (shop_id, free_entries_used)
+     VALUES ($1, $2)
+     ON CONFLICT (shop_id) DO UPDATE SET
+       free_entries_used = $2,
+       updated_at = NOW()`,
+    [shopId, totalNow]
+  );
+
+  return created(res, { synced, skipped, failed, errors, freeEntriesUsed: totalNow }, 'Sync push completed');
 };
 
 /**
