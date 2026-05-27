@@ -39,18 +39,9 @@ const pushSync = async (req, res) => {
     free_entries_limit: 3, free_entries_used: 0,
   };
 
-  const isPremium   = flags.can_sell || flags.can_purchase;
-  const hasSale     = transactions.some(t => (t.transactionType || '').toLowerCase() === 'sale');
-  const hasPurchase = transactions.some(t => (t.transactionType || '').toLowerCase() === 'purchase');
+  const isPremium = flags.can_sell || flags.can_purchase;
 
-  if (hasSale && !flags.can_sell) {
-    return forbidden(res, 'Sell feature is not enabled for your account. Contact admin.', 'FEATURE_LOCKED');
-  }
-  if (hasPurchase && !flags.can_purchase) {
-    return forbidden(res, 'Purchase feature is not enabled for your account. Contact admin.', 'FEATURE_LOCKED');
-  }
-
-  // Free tier limit: count only NEW transactions (not already synced)
+  // Free tier limit: block if total would exceed limit
   if (!isPremium) {
     const existingCount = await query(
       `SELECT COUNT(*) FROM transactions WHERE shop_id = $1`, [shopId]
