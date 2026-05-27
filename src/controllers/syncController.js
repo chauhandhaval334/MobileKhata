@@ -41,17 +41,25 @@ const pushSync = async (req, res) => {
 
   const isPremium = flags.can_sell || flags.can_purchase || flags.can_repair;
 
-  // Free tier limit: block if total would exceed limit
+  // Free tier limit: only count truly NEW entries (not already synced ones)
   if (!isPremium) {
+    const androidIds = transactions.map(t => t.transactionId);
+    const alreadySynced = await query(
+      `SELECT android_txn_id FROM transactions WHERE shop_id = $1 AND android_txn_id = ANY($2)`,
+      [shopId, androidIds]
+    );
+    const alreadySyncedIds = new Set(alreadySynced.rows.map(r => r.android_txn_id));
+    const trulyNewCount = transactions.filter(t => !alreadySyncedIds.has(t.transactionId)).length;
+
     const existingCount = await query(
       `SELECT COUNT(*) FROM transactions WHERE shop_id = $1`, [shopId]
     );
     const currentTotal = parseInt(existingCount.rows[0].count, 10);
-    const newTxnCount = transactions.length;
-    if (currentTotal + newTxnCount > flags.free_entries_limit) {
+
+    if (trulyNewCount > 0 && currentTotal + trulyNewCount > flags.free_entries_limit) {
       return forbidden(
         res,
-        `Free plan allows only ${flags.free_entries_limit} entries. You have ${currentTotal} entries. Upgrade to premium.`,
+        `Free plan allows only ${flags.free_entries_limit} entries. You have ${currentTotal} synced entries. Upgrade to premium.`,
         'FREE_LIMIT_EXCEEDED'
       );
     }
