@@ -20,7 +20,7 @@ router.post(
     body('androidDeviceId').optional().trim(),
     body('transactions').isArray().withMessage('transactions must be an array'),
     body('transactions.*.transactionId').notEmpty(),
-    body('transactions.*.transactionType').isIn(['Purchase', 'Sale']),
+    body('transactions.*.transactionType').isIn(['Purchase', 'Sale', 'Repair']),
     body('transactions.*.amount').isInt({ min: 0 }),
     body('transactions.*.imei1').trim().notEmpty(),
     body('transactions.*.customerName').trim().notEmpty(),

@@ -119,12 +119,13 @@ const pushSync = async (req, res) => {
         const txnRes = await client.query(
           `INSERT INTO transactions
              (android_txn_id, shop_id, device_id, customer_id, txn_type,
-              amount, payment_method, remarks, txn_date)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+              amount, payment_method, remarks, purpose, bill_number, txn_date)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
            RETURNING id`,
           [entry.transactionId, shopId, deviceId, customerId,
            entry.transactionType, entry.amount,
-           entry.paymentMethod || 'Cash', entry.remarks || '', txnDate]
+           entry.paymentMethod || 'Cash', entry.remarks || '',
+           entry.purpose || '', entry.billNumber || '', txnDate]
         );
 
         // Insert timeline event
@@ -207,6 +208,8 @@ const pullSync = async (req, res) => {
        t.amount,
        t.payment_method         AS "paymentMethod",
        t.remarks,
+       t.purpose,
+       t.bill_number            AS "billNumber",
        (EXTRACT(EPOCH FROM t.txn_date) * 1000)::BIGINT AS "createdAtMillis",
        d.brand, d.model, d.storage, d.color, d.imei1, d.imei2,
        d.condition_label        AS "condition",
