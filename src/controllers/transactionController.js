@@ -244,4 +244,51 @@ const getImeiHistory = async (req, res) => {
   return success(res, result.rows);
 };
 
-module.exports = { createTransaction, listTransactions, getTransaction, getImeiHistory };
+/**
+ * DELETE /api/v1/transactions/by-android-id/:androidTxnId
+ * Delete a transaction by Android transaction ID.
+ * Safe: only deletes if it belongs to this shop.
+ */
+const deleteTransactionByAndroidId = async (req, res) => {
+  const shopId = req.shop.id;
+  const { androidTxnId } = req.params;
+
+  const result = await query(
+    `DELETE FROM transactions
+     WHERE shop_id = $1 AND android_txn_id = $2
+     RETURNING id`,
+    [shopId, androidTxnId]
+  );
+
+  if (result.rows.length === 0) {
+    return notFound(res, 'Transaction not found or already deleted');
+  }
+
+  logger.info('Transaction deleted', { shopId, androidTxnId });
+  return success(res, { deleted: true, androidTxnId });
+};
+
+/**
+ * DELETE /api/v1/transactions/by-customer/:mobile
+ * Delete ALL transactions for a customer (by mobile number).
+ * Safe: only deletes if they belong to this shop.
+ */
+const deleteTransactionsByCustomer = async (req, res) => {
+  const shopId = req.shop.id;
+  const { mobile } = req.params;
+
+  const result = await query(
+    `DELETE FROM transactions
+     WHERE shop_id = $1
+       AND customer_id IN (
+         SELECT id FROM customers WHERE shop_id = $1 AND mobile = $2
+       )
+     RETURNING id`,
+    [shopId, mobile]
+  );
+
+  logger.info('Customer transactions deleted', { shopId, mobile, count: result.rows.length });
+  return success(res, { deleted: result.rows.length, mobile });
+};
+
+module.exports = { createTransaction, listTransactions, getTransaction, getImeiHistory, deleteTransactionByAndroidId, deleteTransactionsByCustomer };

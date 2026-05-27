@@ -7,6 +7,7 @@ const { validate } = require('../middleware/validate');
 const {
   createTransaction, listTransactions,
   getTransaction, getImeiHistory,
+  deleteTransactionByAndroidId, deleteTransactionsByCustomer,
 } = require('../controllers/transactionController');
 const { upload } = require('../services/uploadService');
 const { uploadMedia } = require('../controllers/mediaController');
@@ -95,6 +96,28 @@ router.post(
     { name: 'other',          maxCount: 5 },
   ]),
   uploadMedia
+);
+
+/**
+ * DELETE /api/v1/transactions/by-android-id/:androidTxnId
+ * Delete a single transaction by Android txn ID.
+ */
+router.delete(
+  '/by-android-id/:androidTxnId',
+  [param('androidTxnId').trim().notEmpty()],
+  validate,
+  deleteTransactionByAndroidId
+);
+
+/**
+ * DELETE /api/v1/transactions/by-customer/:mobile
+ * Delete all transactions for a customer mobile number.
+ */
+router.delete(
+  '/by-customer/:mobile',
+  [param('mobile').trim().notEmpty()],
+  validate,
+  deleteTransactionsByCustomer
 );
 
 module.exports = router;
