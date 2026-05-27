@@ -127,10 +127,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     shop_id             UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
     device_id           UUID NOT NULL REFERENCES devices(id) ON DELETE RESTRICT,
     customer_id         UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
-    txn_type            TEXT NOT NULL CHECK (txn_type IN ('Purchase', 'Sale')),
+    txn_type            TEXT NOT NULL CHECK (txn_type IN ('Purchase', 'Sale', 'Repair')),
     amount              INTEGER NOT NULL CHECK (amount >= 0),
     payment_method      TEXT NOT NULL DEFAULT 'Cash' CHECK (payment_method IN ('Cash', 'Online', 'Cheque')),
     remarks             TEXT NOT NULL DEFAULT '',
+    purpose             TEXT NOT NULL DEFAULT '',
+    bill_number         TEXT NOT NULL DEFAULT '',
     txn_date            TIMESTAMPTZ NOT NULL,   -- actual transaction date (from Android createdAtMillis)
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -187,7 +189,7 @@ CREATE TABLE IF NOT EXISTS timeline_events (
     device_id        UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     imei1            TEXT NOT NULL,             -- denormalised for fast IMEI lookup
     imei2            TEXT NOT NULL DEFAULT '',
-    event_type       TEXT NOT NULL CHECK (event_type IN ('Purchase', 'Sale')),
+    event_type       TEXT NOT NULL CHECK (event_type IN ('Purchase', 'Sale', 'Repair')),
     title            TEXT NOT NULL,
     value            TEXT NOT NULL DEFAULT '',
     event_date       TIMESTAMPTZ NOT NULL,

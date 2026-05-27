@@ -22,7 +22,7 @@ router.use(verifyFirebaseToken, requireShop);
 router.post(
   '/',
   [
-    body('txnType').isIn(['Purchase', 'Sale']).withMessage('txnType must be Purchase or Sale'),
+    body('txnType').isIn(['Purchase', 'Sale', 'Repair']).withMessage('txnType must be Purchase, Sale or Repair'),
     body('amount').isInt({ min: 0 }).withMessage('Amount must be a non-negative integer'),
     body('paymentMethod').optional().isIn(['Cash', 'Online', 'Cheque']),
     body('imei1').trim().notEmpty().withMessage('IMEI1 is required').isLength({ min: 14, max: 16 }),

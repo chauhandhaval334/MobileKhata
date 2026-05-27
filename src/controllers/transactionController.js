@@ -24,6 +24,8 @@ const createTransaction = async (req, res) => {
     customerName, customerMobile, customerAddress,
     customerState, customerDistrict, customerPinCode,
     gstin, aadhaarNumber,
+    // Repair-specific
+    purpose, billNumber,
   } = req.body;
 
   // Check for duplicate sync
@@ -93,11 +95,12 @@ const createTransaction = async (req, res) => {
     const txnRes = await client.query(
       `INSERT INTO transactions
          (android_txn_id, shop_id, device_id, customer_id, txn_type,
-          amount, payment_method, remarks, txn_date)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          amount, payment_method, remarks, purpose, bill_number, txn_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
       [androidTxnId || null, shopId, deviceId, customerId,
-       txnType, amount, paymentMethod || 'Cash', remarks || '', txnDate]
+       txnType, amount, paymentMethod || 'Cash', remarks || '',
+       purpose || '', billNumber || '', txnDate]
     );
     const txn = txnRes.rows[0];
 
