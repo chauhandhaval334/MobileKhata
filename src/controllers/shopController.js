@@ -41,6 +41,15 @@ const setupShop = async (req, res) => {
   );
 
   const shop = result.rows[0];
+
+  // Ensure default feature flags row exists for this shop
+  await query(
+    `INSERT INTO user_features (shop_id)
+     VALUES ($1)
+     ON CONFLICT (shop_id) DO NOTHING`,
+    [shop.id]
+  );
+
   logger.info('Shop profile upserted', { shopId: shop.id, uid });
   return created(res, sanitizeShop(shop), 'Shop profile saved');
 };
