@@ -45,17 +45,29 @@ app.use(helmet({
   contentSecurityPolicy: false, // API only — no HTML served
 }));
 
+// Build the set of allowed origins — includes the server's own URL so the
+// admin panel (served from this very server) can make API calls to itself.
+const SELF_URL = process.env.RENDER_EXTERNAL_URL   // e.g. https://mobilekhata.onrender.com
+              || process.env.PUBLIC_URL
+              || null;
+
+const allowedOriginsSet = new Set([
+  ...(env.allowedOrigins || []),
+  ...(SELF_URL ? [SELF_URL] : []),
+]);
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman)
+    // Allow requests with no origin (mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
-    if (env.allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
+    // Allow any explicitly listed origin OR the server's own URL
+    if (allowedOriginsSet.has(origin) || env.NODE_ENV === 'development') {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked: ${origin}`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Device-Id'],
   credentials: true,
 }));
 
