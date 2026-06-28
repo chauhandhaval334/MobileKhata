@@ -1,202 +1,203 @@
 # MobileKhata Backend
 
-Production-ready REST API backend for the MobileKhata Android app.
+> Node.js + Express REST API for the MobileKhata Android app.
+> Handles authentication, data sync, feature gating, admin management, and push notifications.
 
-**Stack:** Node.js · Express.js · PostgreSQL · Firebase Admin SDK · Multer · PM2
+**Live URL:** https://mobilekhata.onrender.com
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/chauhandhaval334/MobileKhata.git
+cd MobileKhata          # or cd mobilekhata-backend if separate repo
+npm install
+cp .env.example .env    # Fill in your credentials (see below)
+node src/database/migrate.js   # Initialize DB schema
+npm run dev             # Start development server (nodemon)
+```
+
+Server runs on `http://localhost:3000`
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+DATABASE_URL=postgresql://user:password@host/dbname
+FIREBASE_PROJECT_ID=mobilekhata-1b8a8
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n"
+ADMIN_UIDS=YourFirebaseUID1,YourFirebaseUID2
+ALLOWED_ORIGINS=https://yourdomain.com
+NODE_ENV=development
+PORT=3000
+```
+
+> ⚠️ **ADMIN_UIDS**: Add your Firebase UID here to access the admin panel at `/admin`.
+> To get your Firebase UID: log in to the app, check the admin panel login error page — it shows your UID.
 
 ---
 
 ## Project Structure
 
 ```
-mobilekhata-backend/
-├── src/
-│   ├── config/
-│   │   ├── env.js          # All environment variables (single source of truth)
-│   │   ├── database.js     # PostgreSQL pool + query helpers
-│   │   └── firebase.js     # Firebase Admin SDK init
-│   ├── middleware/
-│   │   ├── auth.js         # Firebase JWT verification + shop lookup
-│   │   ├── errorHandler.js # Global error + 404 handler
-│   │   └── validate.js     # express-validator result checker
-│   ├── controllers/
-│   │   ├── shopController.js         # Shop setup, profile, stats
-│   │   ├── transactionController.js  # Purchase/Sale CRUD
-│   │   ├── stockController.js        # Current stock view
-│   │   ├── customerController.js     # Customer list + profile
-│   │   ├── mediaController.js        # Secure file upload/serve/delete
-│   │   ├── reportController.js       # Summary + daily reports
-│   │   └── syncController.js         # Android ↔ Server sync
-│   ├── routes/
-│   │   ├── shopRoutes.js
-│   │   ├── transactionRoutes.js
-│   │   ├── stockRoutes.js
-│   │   ├── customerRoutes.js
-│   │   ├── mediaRoutes.js
-│   │   ├── reportRoutes.js
-│   │   └── syncRoutes.js
-│   ├── services/
-│   │   └── uploadService.js  # Multer config + file helpers
-│   ├── database/
-│   │   ├── schema.sql        # Full PostgreSQL schema
-│   │   └── migrate.js        # Migration runner
-│   ├── utils/
-│   │   ├── logger.js         # Winston logger
-│   │   └── response.js       # Standardised API response helpers
-│   ├── app.js                # Express app setup
-│   └── server.js             # Server entry point + graceful shutdown
-├── uploads/                  # File storage (outside web root)
-├── logs/                     # Log files
-├── ecosystem.config.js       # PM2 config
-├── .env.example              # Environment template
-└── package.json
+src/
+├── app.js              # Express setup + all route mounts
+├── server.js           # HTTP server startup
+├── config/             # DB, Firebase, env config
+├── controllers/        # Business logic
+├── routes/             # Route definitions (V1 and V2 split)
+├── middleware/         # Auth, validation, error handling
+├── database/           # schema.sql + migrate.js
+├── services/           # File upload service
+└── utils/              # Logger, response helpers, maintenance store
+public/
+├── admin/              # Admin dashboard (static HTML)
+└── website/            # Public marketing website (static HTML)
 ```
 
 ---
 
-## API Reference
+## API Versioning
 
-All endpoints require `Authorization: Bearer <Firebase ID Token>` header.
+This backend supports two API versions to ensure backward compatibility:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check (no auth) |
-| `POST` | `/api/v1/shop/setup` | Create/update shop profile |
-| `GET` | `/api/v1/shop/profile` | Get shop profile |
-| `GET` | `/api/v1/shop/stats` | Dashboard stats |
-| `POST` | `/api/v1/transactions` | Create purchase or sale |
-| `GET` | `/api/v1/transactions` | List transactions (paginated, filtered) |
-| `GET` | `/api/v1/transactions/:id` | Get transaction detail |
-| `GET` | `/api/v1/transactions/imei/:imei` | Full IMEI lifecycle history |
-| `GET` | `/api/v1/stock` | Current in-stock devices |
-| `GET` | `/api/v1/stock/check/:imei` | Check if IMEI is in stock |
-| `GET` | `/api/v1/customers` | List customers |
-| `GET` | `/api/v1/customers/:mobile` | Customer profile + transactions |
-| `POST` | `/api/v1/transactions/:txnId/media` | Upload documents/images |
-| `GET` | `/api/v1/media/:mediaId` | Serve protected file |
-| `DELETE` | `/api/v1/media/:mediaId` | Delete file |
-| `GET` | `/api/v1/reports/summary` | Date-range report |
-| `GET` | `/api/v1/reports/daily` | Daily report |
-| `POST` | `/api/v1/sync/push` | Android → Server batch sync |
-| `GET` | `/api/v1/sync/pull` | Server → Android data restore |
+| Version | Base Path | Used By |
+|---------|-----------|---------|
+| V1 | `/api/v1/` | Old app versions (Play Store) |
+| V2 | `/api/v2/` | New app builds |
+
+**V2 additions over V1:**
+- Single-device session lockout (`X-Device-Id` header)
+- Trial period enforcement (days-based + entries-based)
+- Premium expiry date checking
+- Feedback Center endpoints
+- Bill Book endpoints
+- FCM token management
+- Google Play purchase verification
 
 ---
 
-## Setup on Hostinger VPS
+## Key Endpoints
 
-### 1. Install dependencies
-
-```bash
-sudo apt update
-sudo apt install -y nodejs npm postgresql nginx
-npm install -g pm2
+### Health
+```
+GET /health               → Always 200 (Render health check)
+GET /api/v1/health        → V1 health
+GET /api/v2/health        → V2 health
 ```
 
-### 2. Clone and install
-
-```bash
-git clone <your-repo> /var/www/mobilekhata-backend
-cd /var/www/mobilekhata-backend
-npm install --production
+### Shop (requires Firebase auth)
+```
+POST   /api/v2/shop/setup          → Create/update shop profile
+GET    /api/v2/shop/profile        → Get my shop
+GET    /api/v2/shop/stats          → Dashboard stats
+GET    /api/v2/shop/features       → Feature flags (premium, trial)
+GET    /api/v2/shop/plans          → Subscription plans info
+POST   /api/v2/shop/fcm-token      → Update FCM token
+POST   /api/v2/shop/active-device  → Register active device
+POST   /api/v2/shop/verify-purchase → Verify Google Play purchase
 ```
 
-### 3. Configure environment
-
-```bash
-cp .env.example .env
-nano .env   # Fill in DB credentials, Firebase keys
+### Sync
+```
+POST   /api/v2/sync/push  → Upload local entries to server (rate limited: 10/min)
+GET    /api/v2/sync/pull  → Download entries from server (for new device restore)
 ```
 
-### 4. Setup PostgreSQL
-
-```bash
-sudo -u postgres psql
-CREATE DATABASE mobilekhata;
-CREATE USER mobilekhata_user WITH ENCRYPTED PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE mobilekhata TO mobilekhata_user;
-\q
+### Admin (requires ADMIN_UIDS)
 ```
-
-### 5. Run database migration
-
-```bash
-npm run migrate
-```
-
-### 6. Create upload and log directories
-
-```bash
-mkdir -p /var/www/mobilekhata-backend/uploads
-mkdir -p /var/log/mobilekhata
-chown -R www-data:www-data /var/www/mobilekhata-backend/uploads
-```
-
-### 7. Start with PM2
-
-```bash
-pm2 start ecosystem.config.js --env production
-pm2 save
-pm2 startup   # Follow instructions to enable auto-start
-```
-
-### 8. Nginx reverse proxy
-
-```nginx
-server {
-    listen 80;
-    server_name api.yourdomain.com;
-
-    location / {
-        proxy_pass         http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header   Upgrade $http_upgrade;
-        proxy_set_header   Connection 'upgrade';
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_cache_bypass $http_upgrade;
-
-        # Security: uploads are never served by Nginx directly
-        location ~* ^/uploads/ {
-            deny all;
-        }
-    }
-}
-```
-
-### 9. SSL with Certbot
-
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d api.yourdomain.com
+GET    /api/v2/admin/stats               → Platform stats
+GET    /api/v2/admin/shops               → All shops list
+PATCH  /api/v2/admin/shops/:id/features  → Toggle features for a shop
+PATCH  /api/v2/admin/shops/:id/premium   → Set premium expiry date
+POST   /api/v2/admin/notify/:id          → Send push notification
+PATCH  /api/v2/admin/maintenance         → Toggle maintenance mode
+PATCH  /api/v2/admin/config              → Update app config values
 ```
 
 ---
 
-## Firebase Service Account
+## Admin Panel
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Project `mobilekhata-1b8a8` → Project Settings → Service Accounts
-3. Click **Generate new private key** → download JSON
-4. Copy values into `.env`:
-   - `FIREBASE_PROJECT_ID`
-   - `FIREBASE_CLIENT_EMAIL`
-   - `FIREBASE_PRIVATE_KEY`
+Access at: `https://mobilekhata.onrender.com/admin`
+
+Login with Firebase phone OTP. Your Firebase UID must be in the `ADMIN_UIDS` environment variable.
+
+**Admin capabilities:**
+- View all registered shops
+- Enable/disable features per shop (sell, purchase, repair, reports)
+- Set premium expiry date
+- Adjust free entries limit
+- Send push notifications
+- Manage feedback tickets (reply, change status)
+- Toggle maintenance mode
+- Edit app config (support number, min app version, etc.)
 
 ---
 
-## Database Schema Overview
+## Database
 
-```
-shops           ← one per Firebase UID (shop owner)
-  └── customers ← one per mobile number per shop
-  └── devices   ← one per IMEI (reused across purchase/sale cycles)
-       └── transactions ← every purchase or sale
-            └── transaction_media ← photos, aadhaar, invoices
-            └── timeline_events   ← immutable audit log
-  └── sync_log  ← Android sync audit trail
+**PostgreSQL on Neon Cloud.**
+
+Run migrations:
+```bash
+node src/database/migrate.js
 ```
 
-Views:
-- `current_stock` — devices in stock right now
-- `imei_lifecycle` — full ownership history per IMEI
+This is **idempotent** — safe to run multiple times. Uses `CREATE TABLE IF NOT EXISTS` and `ALTER TABLE ADD COLUMN IF NOT EXISTS`.
+
+### Main Tables
+| Table | Purpose |
+|-------|---------|
+| `shops` | One row per registered shop |
+| `user_features` | Feature flags + premium expiry per shop |
+| `customers` | Customer KYC data |
+| `devices` | Device IMEI records |
+| `transactions` | Core ledger (Purchase/Sale/Repair) |
+| `transaction_media` | Firebase Storage URLs per transaction |
+| `bills` | Generated invoices |
+| `feedback_tickets` | User feedback submissions |
+| `feedback_replies` | Reply thread per ticket |
+| `app_config` | Key-value config (admin-editable) |
+| `sync_log` | Audit log of sync operations |
+
+---
+
+## Authentication
+
+Every API request requires:
+```
+Authorization: Bearer <Firebase ID Token>
+X-Device-Id: <Android UUID>     ← V2 routes only
+```
+
+Firebase ID Tokens expire after 1 hour. The Android SDK refreshes them automatically.
+
+**Admin routes** additionally require the request's Firebase UID to be listed in `ADMIN_UIDS` env var.
+
+---
+
+## Deployment (Render.com)
+
+1. Push to `master` branch → Render auto-deploys
+2. Set environment variables in Render Dashboard → Environment tab
+3. Run migration manually once on first deploy (or SSH + run `node src/database/migrate.js`)
+
+**Note:** Render free tier sleeps after 15min inactivity. First request after sleep takes ~30 seconds (cold start). Upgrade to paid plan to avoid this.
+
+---
+
+## Detailed Documentation
+
+See [AI_MEMORY.md](./AI_MEMORY.md) for the complete project documentation including:
+- Full system architecture diagram
+- Complete database schema explanation
+- V1 vs V2 API differences
+- Feature gating logic
+- Sync system internals
+- Key design decisions
