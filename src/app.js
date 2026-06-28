@@ -3,6 +3,7 @@
 require('express-async-errors'); // Patches async route handlers to auto-call next(err)
 
 const express = require('express');
+const path = require('path');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -14,15 +15,23 @@ const logger = require('./utils/logger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 // Route modules
-const shopRoutes        = require('./routes/shopRoutes');
+const shopRoutesV1      = require('./routes/shopRoutesV1');
+const shopRoutesV2      = require('./routes/shopRoutesV2');
+const syncRoutesV1      = require('./routes/syncRoutesV1');
+const syncRoutesV2      = require('./routes/syncRoutesV2');
 const transactionRoutes = require('./routes/transactionRoutes');
 const stockRoutes       = require('./routes/stockRoutes');
 const customerRoutes    = require('./routes/customerRoutes');
 const mediaRoutes       = require('./routes/mediaRoutes');
 const reportRoutes      = require('./routes/reportRoutes');
-const syncRoutes        = require('./routes/syncRoutes');
 const imeiRoutes        = require('./routes/imeiRoutes');
 const adminRoutes       = require('./routes/adminRoutes');
+const adminRoutesV2     = require('./routes/adminRoutesV2');
+const feedbackRoutes    = require('./routes/feedbackRoutes');
+const adminFeedbackRoutes = require('./routes/adminFeedbackRoutes');
+const billRoutes        = require('./routes/billRoutes');
+const websiteRoutes     = require('./routes/websiteRoutes');
+const { getMaintenanceMode } = require('./utils/maintenanceStore');
 
 const app = express();
 
@@ -92,6 +101,8 @@ app.use(morgan('combined', {
 
 // ─── Health Check ──────────────────────────────────────────────────────────────
 
+// Root /health endpoint is defined BEFORE maintenance mode middleware
+// so it always returns 200 OK (critical for Render hosting health checks)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -102,11 +113,51 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ─── Maintenance Mode Middleware ──────────────────────────────────────────────
+app.use(async (req, res, next) => {
+  // Exclude admin dashboard, static assets, and v2 admin routes
+  if (
+    req.path.startsWith('/admin') || 
+    req.path.startsWith('/api/v2/admin') ||
+    req.path.startsWith('/favicon.ico') ||
+    req.path === '/' || req.path.startsWith('/assets') || req.path.startsWith('/api/v1/website')
+  ) {
+    return next();
+  }
+
+  const isMaintenance = await getMaintenanceMode();
+  if (isMaintenance) {
+    return res.status(503).json({
+      success: false,
+      error: 'Technical difficulties, we are improving something... patience!',
+      code: 'SERVER_MAINTENANCE'
+    });
+  }
+  next();
+});
+
+// ─── Admin Dashboard static route ──────────────────────────────────────────────
+app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
+
+// ─── Public Website static route ───────────────────────────────────────────────
+app.use('/', express.static(path.join(__dirname, '../public/website')));
+
+// ─── Client API & Public Status Routes (Defined AFTER Maintenance Middleware) ───
+
 app.get('/api/v1/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     service: 'mobilekhata-api',
     version: 'v1',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/v2/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'mobilekhata-api',
+    version: 'v2',
     timestamp: new Date().toISOString(),
   });
 });
@@ -132,19 +183,35 @@ app.get('/api/v1/db-status', async (req, res) => {
   }
 });
 
-// ─── API Routes ────────────────────────────────────────────────────────────────
+const V1 = '/api/v1';
+const V2 = '/api/v2';
 
-const API = '/api/v1';
+// ─── V1 API Routes ─────────────────────────────────────────────────────────────
+app.use(`${V1}/shop`,          shopRoutesV1);
+app.use(`${V1}/sync`,          syncLimiter, syncRoutesV1);
+app.use(`${V1}/transactions`,  transactionRoutes);
+app.use(`${V1}/stock`,         stockRoutes);
+app.use(`${V1}/customers`,     customerRoutes);
+app.use(`${V1}/media`,         mediaRoutes);
+app.use(`${V1}/reports`,       reportRoutes);
+app.use(`${V1}/imei`,          imeiRoutes);
+app.use(`${V1}/admin`,         adminRoutes);
+app.use(`${V1}/website`,       websiteRoutes);
 
-app.use(`${API}/shop`,          shopRoutes);
-app.use(`${API}/transactions`,  transactionRoutes);
-app.use(`${API}/stock`,         stockRoutes);
-app.use(`${API}/customers`,     customerRoutes);
-app.use(`${API}/media`,         mediaRoutes);
-app.use(`${API}/reports`,       reportRoutes);
-app.use(`${API}/imei`,          imeiRoutes);
-app.use(`${API}/sync`,          syncLimiter, syncRoutes);
-app.use(`${API}/admin`,         adminRoutes);
+// ─── V2 API Routes ─────────────────────────────────────────────────────────────
+app.use(`${V2}/shop`,          shopRoutesV2);
+app.use(`${V2}/sync`,          syncLimiter, syncRoutesV2);
+app.use(`${V2}/transactions`,  transactionRoutes);
+app.use(`${V2}/stock`,         stockRoutes);
+app.use(`${V2}/customers`,     customerRoutes);
+app.use(`${V2}/media`,         mediaRoutes);
+app.use(`${V2}/reports`,       reportRoutes);
+app.use(`${V2}/imei`,          imeiRoutes);
+app.use(`${V2}/feedback`,      feedbackRoutes);
+app.use(`${V2}/bills`,         billRoutes);
+app.use(`${V2}/admin`,         adminRoutesV2);
+app.use(`${V2}/admin/feedback`, adminFeedbackRoutes);
+app.use(`${V2}/website`,       websiteRoutes);
 
 // ─── 404 + Error Handlers ──────────────────────────────────────────────────────
 

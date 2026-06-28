@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MobileKhata Admin Dashboard</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=1.0.1">
+  
+  <!-- Firebase App & Auth compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+  <!-- App Loading Screen -->
+  <div id="app-loading-container" class="app-loading-wrapper">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <p>Verifying session...</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ─── LOGIN SCREEN ───────────────────────────────────────────────────── -->
+  <div id="login-container" class="login-wrapper hidden">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-badge">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <h1>MobileKhata Admin</h1>
+        <p>Access the platform management portal</p>
+      </div>
+
+      <!-- Step 1: Send OTP -->
+      <form id="phone-form" class="auth-form active">
+        <div class="input-group">
+          <label for="phone-input">Phone Number</label>
+          <div class="phone-input-wrapper">
+            <span class="country-code">+91</span>
+            <input type="tel" id="phone-input" placeholder="Enter 10-digit mobile number" required pattern="[0-9]{10}">
+          </div>
+        </div>
+        <div id="recaptcha-container"></div>
+        <button type="submit" id="send-otp-btn" class="btn btn-primary">
+          <span>Send Verification OTP</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <!-- Step 2: Verify OTP -->
+      <form id="otp-form" class="auth-form">
+        <div class="input-group">
+          <label for="otp-input">Verification Code</label>
+          <input type="text" id="otp-input" placeholder="Enter 6-digit OTP code" required pattern="[0-9]{6}">
+        </div>
+        <div class="auth-actions">
+          <button type="button" id="back-to-phone-btn" class="btn btn-secondary">Back</button>
+          <button type="submit" id="verify-otp-btn" class="btn btn-primary">
+            <span>Verify & Login</span>
+            <i data-lucide="log-in"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- Step 3: Unauthorized Admin View -->
+      <div id="unauth-view" class="unauth-view">
+        <div class="unauth-icon">
+          <i data-lucide="lock"></i>
+        </div>
+        <h3>Unauthorized Access</h3>
+        <p>You have successfully logged in via OTP, but your Firebase UID is not registered as an Admin in the backend.</p>
+        <div class="uid-box">
+          <span class="uid-label">Your Firebase UID:</span>
+          <code id="user-uid">Loading...</code>
+          <button id="copy-uid-btn" title="Copy UID" class="btn-copy">
+            <i data-lucide="copy"></i>
+          </button>
+        </div>
+        <div class="setup-instructions">
+          <h4>How to authorize this account:</h4>
+          <ol>
+            <li>Copy the Firebase UID above.</li>
+            <li>Open the <code>.env</code> file in your backend directory.</li>
+            <li>Add it to the <code>ADMIN_UIDS</code> variable:
+              <pre><code>ADMIN_UIDS=YOUR_UID_HERE</code></pre>
+              (Multiple UIDs can be comma-separated).
+            </li>
+            <li>Restart the backend server, and reload this page.</li>
+          </ol>
+        </div>
+        <button id="unauth-logout-btn" class="btn btn-secondary">
+          <i data-lucide="log-out"></i>
+          <span>Logout & Try Again</span>
+        </button>
+      </div>
+
+      <div class="login-footer">
+        <p>Secure authentication via Firebase Phone Auth</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MAIN DASHBOARD PANEL ───────────────────────────────────────────── -->
+  <div id="dashboard-container" class="dashboard-layout hidden">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <i data-lucide="activity"></i>
+        </div>
+        <div class="brand-text">
+          <h2>MobileKhata</h2>
+          <span>Admin Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <a href="#" class="menu-item active" data-tab="overview">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Overview</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="shops">
+          <i data-lucide="store"></i>
+          <span>Shop Directory</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="transactions">
+          <i data-lucide="list-checks"></i>
+          <span>Shop Ledger</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="diagnostics">
+          <i data-lucide="terminal"></i>
+          <span>Diagnostics & Logs</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="plans">
+          <i data-lucide="credit-card"></i>
+          <span>Premium Plans</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="revenue">
+          <i data-lucide="dollar-sign"></i>
+          <span>Revenue Dashboard</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="premium-users">
+          <i data-lucide="users"></i>
+          <span>Premium Customers</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="feedback">
+          <i data-lucide="message-square"></i>
+          <span>Feedback Center</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="config">
+          <i data-lucide="settings"></i>
+          <span>App Config</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="website">
+          <i data-lucide="globe"></i>
+          <span>Website Content</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-user">
+        <div class="user-info">
+          <span id="admin-phone-display" class="user-phone">Admin</span>
+          <span class="user-role">Platform Administrator</span>
+        </div>
+        <button id="logout-btn" class="btn-logout" title="Logout">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <header class="content-header">
+        <div class="header-title">
+          <h1 id="page-title">Dashboard Overview</h1>
+          <p id="page-subtitle">Platform-wide activity and aggregated metrics</p>
+        </div>
+        <button id="refresh-btn" class="btn btn-secondary flex-center" title="Refresh Data">
+          <i data-lucide="refresh-cw"></i>
+          <span>Refresh</span>
+        </button>
+      </header>
+
+      <!-- ─── TAB: OVERVIEW ────────────────────────────────────────────────── -->
+      <section id="tab-overview" class="tab-panel active">
+        <!-- Stats Cards Grid -->
+        <div class="stats-grid">
+          <div class="stats-card">
+            <div class="card-icon blue">
+              <i data-lucide="store"></i>
+            </div>
+            <div class="card-value" id="stat-shops">-</div>
+            <div class="card-label">Total Active Shops</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon green">
+              <i data-lucide="users"></i>
+            </div>
+            <div class="card-value" id="stat-customers">-</div>
+            <div class="card-label">Registered Customers</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon orange">
+              <i data-lucide="package"></i>
+            </div>
+            <div class="card-value" id="stat-stock">-</div>
+            <div class="card-label">Active Devices in Stock</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon red">
+              <i data-lucide="arrow-left-right"></i>
+            </div>
+            <div class="card-value" id="stat-transactions">-</div>
+            <div class="card-label">Total Synced Txns</div>
+          </div>
+        </div>
+
+        <!-- Detail Stats Section -->
+        <div class="dashboard-rows-grid">
+          <!-- Transactions Volume Chart/Table -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>Transaction Types breakdown</h3>
+              <p>Platform ledger breakdown (Purchase vs Sale vs Repair)</p>
+            </div>
+            <div class="card-body">
+              <div class="breakdown-list" id="txn-breakdown-list">
+                <div class="loading-state">
+                  <div class="spinner"></div>
+                  <p>Loading breakdown...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- System Quick Info -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>System Overview</h3>
+              <p>Deployment and runtime status</p>
+            </div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-key">API Server Status</span>
+                  <span class="info-val"><span class="badge badge-success">Online</span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">Database SSL</span>
+                  <span class="info-val"><span class="badge badge-success">Enabled</span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">API Version</span>
+                  <span class="info-val">v2 (Stable)</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">Auth Provider</span>
+                  <span class="info-val">Firebase Phone SMS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: SHOPS ──────────────────────────────────────────────────── -->
+      <section id="tab-shops" class="tab-panel">
+        <div class="data-card">
+          <div class="card-controls">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" id="shop-search" placeholder="Search shops by name, owner, phone...">
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="shop_name" style="cursor: pointer; user-select: none;">Shop Name <span id="sort-icon-shop_name">⇅</span></th>
+                  <th class="sortable" data-sort="owner_name" style="cursor: pointer; user-select: none;">Owner Name <span id="sort-icon-owner_name">⇅</span></th>
+                  <th class="sortable" data-sort="phone_number" style="cursor: pointer; user-select: none;">Phone Number <span id="sort-icon-phone_number">⇅</span></th>
+                  <th class="sortable" data-sort="district" style="cursor: pointer; user-select: none;">District <span id="sort-icon-district">⇅</span></th>
+                  <th>Features</th>
+                  <th class="sortable" data-sort="free_entries_used" style="cursor: pointer; user-select: none;">Free Trial Limits <span id="sort-icon-free_entries_used">⇅</span></th>
+                  <th class="sortable" data-sort="created_at" style="cursor: pointer; user-select: none;">Reg Date <span id="sort-icon-created_at">⇅</span></th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="shops-table-body">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="shops-pagination">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: TRANSACTIONS ────────────────────────────────────────────── -->
+      <section id="tab-transactions" class="tab-panel">
+        <div class="data-card">
+          <div class="card-header border-bottom">
+            <h3>Select Shop Ledger</h3>
+            <p>Select a shop from the dropdown below to view their detailed transaction history.</p>
+          </div>
+          <div class="card-controls select-shop-wrapper">
+            <div class="select-group">
+              <label for="ledger-shop-select">Active Shop:</label>
+              <select id="ledger-shop-select">
+                <option value="">-- Choose a Shop --</option>
+              </select>
+            </div>
+            <div class="filter-group hidden" id="ledger-filters">
+              <div class="select-group">
+                <label for="ledger-type-filter">Type:</label>
+                <select id="ledger-type-filter">
+                  <option value="">All Types</option>
+                  <option value="Purchase">Purchase</option>
+                  <option value="Sale">Sale</option>
+                  <option value="Repair">Repair</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Txn Date</th>
+                  <th>Type</th>
+                  <th>Device Info</th>
+                  <th>IMEI1</th>
+                  <th>Customer Info</th>
+                  <th>Payment</th>
+                  <th>Amount</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="transactions-table-body">
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-5">
+                    <i data-lucide="store" class="large-icon mb-2"></i>
+                    <p>Select a shop from the dropdown above to load transaction ledger</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination hidden" id="ledger-pagination">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: DIAGNOSTICS ───────────────────────────────────────────── -->
+      <section id="tab-diagnostics" class="tab-panel">
+        <!-- Maintenance Mode Status Card -->
+        <div class="data-card mb-4" style="border-color: rgba(239, 68, 68, 0.2);">
+          <div class="card-controls" style="padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; background: rgba(239, 68, 68, 0.03); border-bottom: none;">
+            <div class="flex-center" style="gap: 1rem;">
+              <div class="card-icon red" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="alert-triangle" style="width: 24px; height: 24px;"></i>
+              </div>
+              <div>
+                <h3 style="font-size: 1.15rem; font-weight: 600; color: #fff;">Global Maintenance Mode</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem;">
+                  When active, all mobile users are blocked with a technical difficulty screen.
+                </p>
+              </div>
+            </div>
+            <div class="flex-center" style="gap: 1rem;">
+              <span id="maintenance-badge" class="badge badge-success" style="font-size: 0.85rem; padding: 0.4rem 0.85rem; text-transform: uppercase;">INACTIVE</span>
+              <label class="switch" style="width: 50px; height: 28px;">
+                <input type="checkbox" id="maintenance-switch">
+                <span class="slider" style="border-radius: 34px;"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Cards -->
+        <div class="stats-grid">
+          <div class="stats-card">
+            <div class="card-icon blue">
+              <i data-lucide="database"></i>
+            </div>
+            <div class="card-value" id="diag-db-latency">-</div>
+            <div class="card-label">DB Connection Latency</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon green">
+              <i data-lucide="hard-drive"></i>
+            </div>
+            <div class="card-value" id="diag-storage-files">-</div>
+            <div class="card-label">Uploaded Files Count</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon orange">
+              <i data-lucide="refresh-cw"></i>
+            </div>
+            <div class="card-value" id="diag-sync-conflicts">-</div>
+            <div class="card-label">24h Sync Conflicts / Errors</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon red">
+              <i data-lucide="alert-circle"></i>
+            </div>
+            <div class="card-value" id="diag-sync-total">-</div>
+            <div class="card-label">24h Total Sync Operations</div>
+          </div>
+        </div>
+
+        <!-- Terminal Logs Card -->
+        <div class="data-card mt-4">
+          <div class="card-header border-bottom">
+            <h3>Live Error Logs (logs/error.log)</h3>
+            <p>Last 50 recorded server exception errors</p>
+          </div>
+          <div class="card-body" style="padding: 1.5rem;">
+            <pre class="terminal-box" id="error-logs-terminal">Loading error logs...</pre>
+          </div>
+        </div>
+
+        <div class="data-card mt-4">
+          <div class="card-header border-bottom">
+            <h3>Combined Activity Logs (logs/combined.log)</h3>
+            <p>Last 50 server logs (HTTP requests, transactions, and features updates)</p>
+          </div>
+          <div class="card-body" style="padding: 1.5rem;">
+            <pre class="terminal-box" id="combined-logs-terminal">Loading combined logs...</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: PREMIUM PLANS ─────────────────────────────────────────── -->
+      <section id="tab-plans" class="tab-panel">
+        <div class="data-card">
+          <div class="card-header border-bottom flex-between" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem;">
+            <div>
+              <h3>Premium Plans Directory</h3>
+              <p>Manage subscription packages, pricing, and billing SKU IDs shown inside the app.</p>
+            </div>
+            <button class="btn btn-primary" id="add-plan-btn" style="padding: 0.6rem 1.2rem;">
+              <i data-lucide="plus"></i>
+              <span>Add Premium Plan</span>
+            </button>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Plan ID</th>
+                  <th>Google Play SKU ID</th>
+                  <th>Plan Name</th>
+                  <th>Hindi Name</th>
+                  <th>Gujarati Name</th>
+                  <th>Price</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th>Popular</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="plans-table-body">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: REVENUE DASHBOARD ──────────────────────────────────────── -->
+      <section id="tab-revenue" class="tab-panel">
+        <div class="card-controls flex-between mb-4" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 1.25rem 1.5rem; border-radius: 16px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 600; color: #fff;">Revenue Analytics</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem;">Monitor plan activations, lifetime value, growth, and subscription distributions.</p>
+          </div>
+          <div class="flex-center" style="display: flex; align-items: center; gap: 1rem;">
+            <div class="input-row" style="display: flex; gap: 0.5rem; align-items: center;">
+              <label for="revenue-from" style="font-size: 0.85rem; color: var(--text-muted);">From:</label>
+              <input type="date" id="revenue-from" class="form-control" style="background: var(--bg); border: 1px solid var(--border-soft); color: #fff; border-radius: 8px; padding: 0.4rem 0.6rem;">
+              <label for="revenue-to" style="font-size: 0.85rem; color: var(--text-muted);">To:</label>
+              <input type="date" id="revenue-to" class="form-control" style="background: var(--bg); border: 1px solid var(--border-soft); color: #fff; border-radius: 8px; padding: 0.4rem 0.6rem;">
+            </div>
+            <button class="btn btn-secondary flex-center" id="revenue-filter-btn" style="padding: 0.5rem 1.2rem; border-radius: 8px; height: 38px;">
+              <i data-lucide="filter" style="width: 16px; height: 16px;"></i>
+              <span>Apply</span>
+            </button>
+            <button class="btn btn-secondary flex-center" id="revenue-export-btn" style="padding: 0.5rem 1.2rem; border-radius: 8px; height: 38px;">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric stats cards -->
+        <div class="stats-grid mb-4" style="margin-bottom: 1.5rem;">
+          <div class="stats-card">
+            <div class="card-icon green">
+              <i data-lucide="dollar-sign"></i>
+            </div>
+            <div class="card-value" id="rev-today">₹0</div>
+            <div class="card-label">Today's Revenue</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon blue">
+              <i data-lucide="calendar"></i>
+            </div>
+            <div class="card-value" id="rev-monthly">₹0</div>
+            <div class="card-label">Monthly Revenue</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon orange">
+              <i data-lucide="trending-up"></i>
+            </div>
+            <div class="card-value" id="rev-yearly">₹0</div>
+            <div class="card-label">Yearly Revenue</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon indigo">
+              <i data-lucide="award"></i>
+            </div>
+            <div class="card-value" id="rev-lifetime">₹0</div>
+            <div class="card-label">Lifetime Revenue</div>
+          </div>
+        </div>
+
+        <div class="stats-grid mb-4" style="margin-bottom: 1.5rem;">
+          <div class="stats-card">
+            <div class="card-icon purple">
+              <i data-lucide="user-check"></i>
+            </div>
+            <div class="card-value" id="rev-active-subs">0</div>
+            <div class="card-label">Active Subscribers</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon red">
+              <i data-lucide="user-x"></i>
+            </div>
+            <div class="card-value" id="rev-expired-subs">0</div>
+            <div class="card-label">Expired Subscribers</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon yellow">
+              <i data-lucide="bar-chart-2"></i>
+            </div>
+            <div class="card-value" id="rev-arpu">₹0</div>
+            <div class="card-label">Average Rev Per User (ARPU)</div>
+          </div>
+        </div>
+
+        <!-- Revenue Charts Grid -->
+        <div class="dashboard-rows-grid mb-4" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem;">
+          <div class="data-card">
+            <div class="card-header border-bottom">
+              <h3>Revenue Trend Chart</h3>
+              <p>Daily and monthly earnings visualization</p>
+            </div>
+            <div class="card-body" style="padding: 1.5rem; height: 350px; position: relative;">
+              <canvas id="revenue-trend-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="data-card">
+            <div class="card-header border-bottom">
+              <h3>Subscribers Distribution</h3>
+              <p>Breakdown per subscription duration tier</p>
+            </div>
+            <div class="card-body" style="padding: 1.5rem; height: 350px; position: relative; display: flex; align-items: center; justify-content: center;">
+              <canvas id="revenue-distribution-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: PREMIUM CUSTOMERS ──────────────────────────────────────── -->
+      <section id="tab-premium-users" class="tab-panel">
+        <div class="card-controls flex-between mb-4" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 1.25rem 1.5rem; border-radius: 16px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 600; color: #fff;">Premium User Directory</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem;">Manage active premium memberships, view device allocations, and track audit history.</p>
+          </div>
+          <div class="flex-center" style="display: flex; align-items: center; gap: 1rem;">
+            <input type="text" id="premium-search" class="form-control" placeholder="Search Shop/Owner/Phone..." style="background: var(--bg); border: 1px solid var(--border-soft); color: #fff; border-radius: 8px; padding: 0.4rem 0.85rem; width: 220px;">
+            <select id="premium-filter-plan" class="form-control" style="background: var(--bg); border: 1px solid var(--border-soft); color: #fff; border-radius: 8px; padding: 0.4rem 0.85rem;">
+              <option value="">All Subscription Plans</option>
+              <option value="plan_6m">6 Months Plan</option>
+              <option value="plan_1y">1 Year Plan</option>
+            </select>
+            <select id="premium-filter-status" class="form-control" style="background: var(--bg); border: 1px solid var(--border-soft); color: #fff; border-radius: 8px; padding: 0.4rem 0.85rem;">
+              <option value="">All Statuses</option>
+              <option value="active">Active Members</option>
+              <option value="expiring_soon">Expiring in 7 Days</option>
+              <option value="expired">Expired Members</option>
+            </select>
+            <button class="btn btn-secondary flex-center" id="premium-refresh-btn" style="padding: 0.5rem 1rem; border-radius: 8px; height: 38px;">
+              <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Premium quick metrics summary cards -->
+        <div class="stats-grid mb-4" style="margin-bottom: 1.5rem;">
+          <div class="stats-card">
+            <div class="card-icon green">
+              <i data-lucide="users"></i>
+            </div>
+            <div class="card-value" id="prem-total-count">0</div>
+            <div class="card-label">Total Premium Users</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon blue">
+              <i data-lucide="shield-check"></i>
+            </div>
+            <div class="card-value" id="prem-active-count">0</div>
+            <div class="card-label">Active Premium Users</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon yellow">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+            <div class="card-value" id="prem-expiring-count">0</div>
+            <div class="card-label">Expiring Soon (&lt;7 days)</div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon red">
+              <i data-lucide="x-circle"></i>
+            </div>
+            <div class="card-value" id="prem-expired-count">0</div>
+            <div class="card-label">Expired Subscriptions</div>
+          </div>
+        </div>
+
+        <!-- User Directory Listing -->
+        <div class="data-card">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Shop Name</th>
+                  <th>Owner Name</th>
+                  <th>Mobile Number</th>
+                  <th>Current Plan</th>
+                  <th>Expiry Date</th>
+                  <th>Remaining Days</th>
+                  <th>Device ID</th>
+                  <th>Last Active</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="premium-users-table-body">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: APP CONFIG ────────────────────────────────────────────── -->
+      <section id="tab-config" class="tab-panel">
+        <div class="data-card">
+          <div class="card-header border-bottom">
+            <h3>Global App Configuration</h3>
+            <p>Settings applied platform-wide and synced to mobile apps.</p>
+          </div>
+          <div class="card-body" style="padding: 1.5rem;">
+            <form id="app-config-form">
+              <div class="input-group">
+                <label for="config-support-whatsapp">Support WhatsApp Number</label>
+                <input type="text" id="config-support-whatsapp" placeholder="+918160707979" required>
+              </div>
+              <div class="input-group mt-3">
+                <label for="config-support-email">Support Email Address</label>
+                <input type="email" id="config-support-email" placeholder="support@mobilekhata.com" required>
+              </div>
+              <div class="input-group mt-3">
+                <label for="config-privacy-policy">Privacy Policy URL</label>
+                <input type="url" id="config-privacy-policy" placeholder="https://..." required>
+              </div>
+              <div class="section-title mt-4 mb-2">App Updates</div>
+              <div class="input-group mt-3">
+                <label for="config-min-app-version">Minimum App Version Code (Force Update)</label>
+                <input type="number" id="config-min-app-version" placeholder="e.g. 3" required>
+              </div>
+              <div class="input-group mt-3">
+                <label for="config-app-update-url">App Update URL</label>
+                <input type="url" id="config-app-update-url" placeholder="Play Store Link or APK Link" required>
+              </div>
+              <div class="mt-4">
+                <button type="submit" class="btn btn-primary" id="save-config-btn">
+                  <span>Save Configuration</span>
+                  <i data-lucide="save"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TAB: WEBSITE CONTENT ───────────────────────────────────────── -->
+      <section id="tab-website" class="tab-panel">
+        <div class="data-card">
+          <div class="card-header border-bottom">
+            <h3>Landing Page Settings</h3>
+            <p>Update the text shown on your public landing website.</p>
+            <a href="/" target="_blank" class="btn btn-outline-info mt-2" style="display:inline-block; font-size:0.85rem;">
+              <i data-lucide="external-link"></i> View Website
+            </a>
+          </div>
+          <div class="card-body" style="padding: 1.5rem;">
+            <form id="website-config-form">
+              <div class="input-group mt-3">
+                <label for="config-website-hero-title">Hero Title (Main Headline)</label>
+                <input type="text" id="config-website-hero-title" placeholder="Manage Your Mobile Shop with Ease" required>
+              </div>
+              <div class="input-group mt-3">
+                <label for="config-website-hero-subtitle">Hero Subtitle</label>
+                <textarea id="config-website-hero-subtitle" rows="3" placeholder="MobileKhata is the ultimate ledger..."></textarea>
+              </div>
+              <div class="input-group mt-3">
+                <label for="config-website-about-text">About Us Text</label>
+                <textarea id="config-website-about-text" rows="5" placeholder="MobileKhata was built to solve..."></textarea>
+              </div>
+              <div class="mt-4">
+                <button type="submit" class="btn btn-primary" id="save-website-btn">
+                  <span>Save Website Content</span>
+                  <i data-lucide="save"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ─── MODAL: ADD/EDIT PREMIUM PLAN ───────────────────────────────────── -->
+  <div id="plan-modal" class="modal-wrapper">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="plan-modal-title">Add Premium Plan</h2>
+          <p id="plan-modal-subtitle">Configure subscription plan features & pricing</p>
+        </div>
+        <button class="btn-close-modal" id="close-plan-modal-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="plan-form">
+        <div class="modal-body">
+          <div class="input-row" style="display: flex; gap: 1rem;">
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-id">Plan ID (Unique key)</label>
+              <input type="text" id="plan-id" placeholder="e.g. plan_3m" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-sku">Google Play SKU ID</label>
+              <input type="text" id="plan-sku" placeholder="e.g. play_premium_3m" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+          </div>
+
+          <div class="input-group mt-3">
+            <label for="plan-name">Display Name (English)</label>
+            <input type="text" id="plan-name" placeholder="e.g. 3 Months" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+          </div>
+
+          <div class="input-row mt-3" style="display: flex; gap: 1rem;">
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-name-hi">Hindi Display Name</label>
+              <input type="text" id="plan-name-hi" placeholder="e.g. 3 महीने" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-name-gu">Gujarati Display Name</label>
+              <input type="text" id="plan-name-gu" placeholder="e.g. 3 મહિના" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+          </div>
+
+          <div class="input-row mt-3" style="display: flex; gap: 1rem;">
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-price">Price</label>
+              <input type="number" id="plan-price" min="0" placeholder="e.g. 499" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-currency">Currency</label>
+              <input type="text" id="plan-currency" value="₹" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+          </div>
+
+          <div class="input-row mt-3" style="display: flex; gap: 1rem;">
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-duration">Duration Value</label>
+              <input type="number" id="plan-duration" min="1" placeholder="e.g. 3" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+            <div class="input-group" style="flex: 1;">
+              <label for="plan-unit">Duration Unit</label>
+              <select id="plan-unit" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+                <option value="months">Months</option>
+                <option value="days">Days</option>
+                <option value="years">Years</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="toggle-group mt-4">
+            <div class="toggle-info">
+              <span class="toggle-title">Show "Popular" Badge</span>
+              <span class="toggle-desc">Highlights plan on screen.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="plan-popular">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-group mt-3">
+            <div class="toggle-info">
+              <span class="toggle-title">Active</span>
+              <span class="toggle-desc">If disabled, users cannot see it.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="plan-active" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancel-plan-modal-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-plan-btn-submit">
+            <span>Save Plan</span>
+            <i data-lucide="check"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: EDIT SHOP FEATURE FLAGS ──────────────────────────────────── -->
+  <div id="features-modal" class="modal-wrapper">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-shop-name">Edit Shop Features</h2>
+          <p id="modal-shop-owner">Shopkeeper Details</p>
+        </div>
+        <button class="btn-close-modal" id="close-modal-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="features-form">
+        <input type="hidden" id="modal-shop-id">
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="shop-account-type">Shop Account Type</label>
+            <select id="shop-account-type" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+              <option value="free">Free Trial (Limited by Entries & Days)</option>
+              <option value="premium">Premium (Unlimited Access until Expiration)</option>
+            </select>
+          </div>
+
+          <!-- Section: Premium Options (hidden if free selected) -->
+          <div id="premium-options-section" class="mt-4">
+            <div class="section-title">Premium Subscription Configuration</div>
+            
+            <div class="input-group mt-3">
+              <label for="premium-duration-preset">Premium Duration Quick Select</label>
+              <select id="premium-duration-preset" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+                <option value="1m">1 Month</option>
+                <option value="3m">3 Months</option>
+                <option value="6m">6 Months</option>
+                <option value="1y">1 Year</option>
+                <option value="custom">Custom Expiry Date</option>
+              </select>
+            </div>
+            
+            <div class="input-group mt-3" id="custom-expiry-date-group">
+              <label for="premium-expiry-date">Premium Expiration Date</label>
+              <input type="date" id="premium-expiry-date" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+          </div>
+
+          <!-- Section: Free Options (hidden if premium selected) -->
+          <div id="free-options-section" class="mt-4">
+            <div class="section-title">Free Trial Configuration</div>
+            
+            <div class="input-row mt-3" style="display: flex; gap: 1rem;">
+              <div class="input-group" style="flex: 1;">
+                <label for="limit-entries">Free Entries Limit</label>
+                <input type="number" id="limit-entries" min="0" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+              </div>
+              <div class="input-group" style="flex: 1;">
+                <label for="free-days-limit">Free Days Limit</label>
+                <input type="number" id="free-days-limit" min="1" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+              </div>
+            </div>
+            
+            <div class="input-group mt-3">
+              <label for="used-entries">Free Entries Synced (Used)</label>
+              <input type="number" id="used-entries" min="0" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancel-modal-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-features-btn">
+            <span>Save Settings</span>
+            <i data-lucide="check"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: SEND NOTIFICATION ───────────────────────────────────────── -->
+  <div id="notification-modal" class="modal-wrapper">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <div>
+          <h3>Send Push Notification</h3>
+          <p>Deliver real-time announcement to users</p>
+        </div>
+        <button class="btn-close-modal" id="close-notification-modal-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="notification-form">
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="notification-target">Target Audience</label>
+            <select id="notification-target" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+              <option value="all">All Active Shops (Broadcast)</option>
+              <!-- Populated dynamically with active shops -->
+            </select>
+          </div>
+
+          <div class="input-group mt-3">
+            <label for="notification-title">Notification Title</label>
+            <input type="text" id="notification-title" placeholder="e.g. System Maintenance Update" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+          </div>
+
+          <div class="input-group mt-3">
+            <label for="notification-body">Notification Message Body</label>
+            <textarea id="notification-body" placeholder="e.g. We will be performing database upgrade tonight between 12:00 AM to 1:00 AM." required rows="4" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff; resize: vertical; font-family: inherit;"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" id="cancel-notification-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary flex-center" id="send-notification-submit-btn">
+            <span>Send Alert</span>
+            <i data-lucide="send"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: PREMIUM USER DETAILS & AUDIT ─────────────────────────────── -->
+  <div id="premium-user-modal" class="modal-wrapper">
+    <div class="modal-card" style="max-width: 700px; width: 90%;">
+      <div class="modal-header">
+        <div>
+          <h2 id="premium-modal-title">Premium Shop Details</h2>
+          <p id="premium-modal-subtitle">Sync logs, payments, and push alerts</p>
+        </div>
+        <button class="btn-close-modal" id="close-premium-modal-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+        <!-- Shop overview info -->
+        <div class="shop-detail-summary mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: var(--bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-soft); margin-top: 1rem;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Shop ID</div>
+            <code id="pm-shop-id" style="font-size: 0.85rem; color: var(--primary);">—</code>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Current Plan / Expiry</div>
+            <div id="pm-shop-plan" style="font-weight: 600; font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Owner / Phone</div>
+            <div id="pm-shop-owner" style="font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Device ID</div>
+            <code id="pm-shop-device" style="font-size: 0.85rem; color: #fff;">—</code>
+          </div>
+        </div>
+
+        <!-- Sub-tabs inside Modal -->
+        <div class="modal-tabs" style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-soft); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+          <button class="modal-tab-btn active" data-subtab="pm-payments" style="background: none; border: none; color: #fff; border-bottom: 2px solid var(--primary); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Payments</button>
+          <button class="modal-tab-btn" data-subtab="pm-logs" style="background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Sync History</button>
+          <button class="modal-tab-btn" data-subtab="pm-notify" style="background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Send Alert</button>
+        </div>
+
+        <!-- Modal Tab 1: Payments -->
+        <div id="subtab-pm-payments" class="modal-tab-panel active">
+          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+            <table class="data-table" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th>Activated At</th>
+                  <th>Plan ID</th>
+                  <th>Amount</th>
+                  <th>Expires At</th>
+                </tr>
+              </thead>
+              <tbody id="pm-payments-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Tab 2: Logs -->
+        <div id="subtab-pm-logs" class="modal-tab-panel" style="display: none;">
+          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+            <table class="data-table" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Entity</th>
+                  <th>Operation</th>
+                  <th>Status</th>
+                  <th>Device ID</th>
+                </tr>
+              </thead>
+              <tbody id="pm-logs-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Tab 3: Send Alert -->
+        <div id="subtab-pm-notify" class="modal-tab-panel" style="display: none;">
+          <form id="pm-notify-form">
+            <div class="input-group">
+              <label for="pm-notify-title">Notification Title</label>
+              <input type="text" id="pm-notify-title" placeholder="e.g. Account renewal notice" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            </div>
+            <div class="input-group mt-3">
+              <label for="pm-notify-body">Notification Message Body</label>
+              <textarea id="pm-notify-body" placeholder="e.g. Your premium plan is expiring in 3 days. Extend now to continue unlimited sync." required rows="3" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff; resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary flex-center" id="pm-notify-submit-btn" style="padding: 0.5rem 1.2rem; border-radius: 8px; height: 38px;">
+                <span>Send Alert</span>
+                <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TAB: FEEDBACK ──────────────────────────────────────────────────── -->
+  <section id="tab-feedback" class="tab-panel" style="display:none;">
+
+    <!-- Stats Row -->
+    <div class="stats-grid" id="fb-stats-grid">
+      <div class="stats-card"><div class="card-icon blue"><i data-lucide="inbox"></i></div><div class="card-value" id="fb-stat-total">-</div><div class="card-label">Total Tickets</div></div>
+      <div class="stats-card"><div class="card-icon orange"><i data-lucide="circle"></i></div><div class="card-value" id="fb-stat-open">-</div><div class="card-label">Open</div></div>
+      <div class="stats-card"><div class="card-icon purple"><i data-lucide="eye"></i></div><div class="card-value" id="fb-stat-review">-</div><div class="card-label">Under Review</div></div>
+      <div class="stats-card"><div class="card-icon yellow"><i data-lucide="loader"></i></div><div class="card-value" id="fb-stat-progress">-</div><div class="card-label">In Progress</div></div>
+      <div class="stats-card"><div class="card-icon green"><i data-lucide="check-circle"></i></div><div class="card-value" id="fb-stat-resolved">-</div><div class="card-label">Resolved</div></div>
+      <div class="stats-card"><div class="card-icon gray"><i data-lucide="archive"></i></div><div class="card-value" id="fb-stat-closed">-</div><div class="card-label">Closed</div></div>
+      <div class="stats-card"><div class="card-icon red"><i data-lucide="calendar"></i></div><div class="card-value" id="fb-stat-today">-</div><div class="card-label">Today</div></div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="card" style="margin-bottom:1rem; padding:1rem;">
+      <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center;">
+        <input type="text" id="fb-search" placeholder="🔍 Search ticket, shop, phone..." style="flex:1; min-width:200px; padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+        <select id="fb-filter-status" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <option value="">All Status</option>
+          <option value="open">Open</option>
+          <option value="under_review">Under Review</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select id="fb-filter-type" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <option value="">All Types</option>
+          <option value="bug_report">Bug Report</option>
+          <option value="feature_request">Feature Request</option>
+          <option value="improvement">Improvement</option>
+          <option value="ui_ux">UI / UX</option>
+          <option value="performance">Performance</option>
+          <option value="payment_issue">Payment Issue</option>
+          <option value="premium_issue">Premium Issue</option>
+          <option value="report_issue">Report Issue</option>
+          <option value="sync_issue">Sync Issue</option>
+          <option value="other">Other</option>
+        </select>
+        <select id="fb-filter-priority" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <option value="">All Priority</option>
+          <option value="critical">🔴 Critical</option>
+          <option value="high">🟠 High</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+        <select id="fb-filter-sub" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <option value="">All Plans</option>
+          <option value="premium">Premium Users</option>
+          <option value="free">Free Users</option>
+        </select>
+        <input type="date" id="fb-filter-from" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+        <input type="date" id="fb-filter-to" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+        <button class="btn btn-primary" onclick="loadFeedbackList()" style="padding:0.55rem 1rem; border-radius:8px; height:38px;">
+          <i data-lucide="filter" style="width:16px;height:16px;"></i> Apply
+        </button>
+        <button class="btn btn-secondary" onclick="exportFeedback('csv')" style="padding:0.55rem 1rem; border-radius:8px; height:38px;">
+          <i data-lucide="download" style="width:16px;height:16px;"></i> CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="card" style="overflow-x:auto;">
+      <table class="data-table" id="fb-table">
+        <thead>
+          <tr>
+            <th>Ticket ID</th>
+            <th>Shop / Phone</th>
+            <th>Type</th>
+            <th>Subject</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="fb-table-body">
+          <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading feedback...</td></tr>
+        </tbody>
+      </table>
+      <!-- Pagination -->
+      <div id="fb-pagination" style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; color:var(--text-secondary); font-size:0.85rem;">
+        <span id="fb-page-info">Page 1</span>
+        <div style="display:flex; gap:0.5rem;">
+          <button class="btn btn-secondary" id="fb-prev-btn" onclick="feedbackPageChange(-1)" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem;">← Prev</button>
+          <button class="btn btn-secondary" id="fb-next-btn" onclick="feedbackPageChange(1)" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem;">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticket Detail Modal -->
+    <div id="fb-detail-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; overflow-y:auto;">
+      <div style="max-width:760px; margin:2rem auto; background:var(--bg-primary); border-radius:16px; padding:1.5rem; position:relative;">
+        <button onclick="closeFeedbackModal()" style="position:absolute; top:1rem; right:1rem; background:var(--bg-secondary); border:none; color:#fff; border-radius:8px; padding:0.4rem 0.8rem; cursor:pointer;">✕ Close</button>
+
+        <div id="fb-detail-content">Loading...</div>
+
+        <!-- Admin Actions -->
+        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+          <select id="fb-action-status" style="padding:0.5rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+            <option value="">Change Status...</option>
+            <option value="open">Open</option>
+            <option value="under_review">Under Review</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">✅ Resolved</option>
+            <option value="closed">🔒 Closed</option>
+          </select>
+          <button class="btn btn-primary" onclick="applyFeedbackStatus()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem;">Apply Status</button>
+          <select id="fb-action-priority" style="padding:0.5rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+            <option value="">Set Priority...</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+          <button class="btn btn-secondary" onclick="applyFeedbackPriority()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem;">Set Priority</button>
+          <button class="btn btn-danger" onclick="deleteFeedbackTicket()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem; background:#ef4444; border:none; color:#fff; cursor:pointer;">🗑 Delete</button>
+        </div>
+
+        <!-- Reply Box -->
+        <div style="margin-top:1rem;">
+          <label style="font-size:0.85rem; color:var(--text-secondary); font-weight:600;">Reply to User</label>
+          <textarea id="fb-reply-text" rows="3" placeholder="Type your reply here..." style="width:100%; margin-top:0.5rem; padding:0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; resize:vertical; font-family:inherit;"></textarea>
+          <button class="btn btn-primary" onclick="sendFeedbackReply()" style="margin-top:0.5rem; padding:0.5rem 1.2rem; border-radius:8px;">
+            <i data-lucide="send" style="width:14px;height:14px;"></i> Send Reply
+          </button>
+        </div>
+
+        <!-- Internal Note -->
+        <div style="margin-top:1rem;">
+          <label style="font-size:0.85rem; color:var(--text-secondary); font-weight:600;">Internal Note (Not visible to user)</label>
+          <textarea id="fb-note-text" rows="2" placeholder="Add internal note..." style="width:100%; margin-top:0.5rem; padding:0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; resize:vertical; font-family:inherit;"></textarea>
+          <button class="btn btn-secondary" onclick="addFeedbackNote()" style="margin-top:0.5rem; padding:0.5rem 1.2rem; border-radius:8px;">
+            <i data-lucide="sticky-note" style="width:14px;height:14px;"></i> Save Note
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Scripts -->
+  <script src="app.js?v=1.0.1"></script>
+</body>
+</html>

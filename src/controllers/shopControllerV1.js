@@ -16,14 +16,12 @@ const setupShop = async (req, res) => {
     gstNumber, licenceNumber, retailId, hasCctv, bizRemarks,
   } = req.body;
 
-  const incomingDeviceId = req.headers['x-device-id'] || null;
-
   // Upsert — safe to call multiple times (idempotent setup)
   const result = await query(
     `INSERT INTO shops
        (firebase_uid, phone_number, shop_name, shop_address, owner_name,
-        district, gst_number, licence_number, retail_id, has_cctv, biz_remarks, active_device_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        district, gst_number, licence_number, retail_id, has_cctv, biz_remarks)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      ON CONFLICT (firebase_uid)
      DO UPDATE SET
        shop_name      = EXCLUDED.shop_name,
@@ -35,12 +33,11 @@ const setupShop = async (req, res) => {
        retail_id      = EXCLUDED.retail_id,
        has_cctv       = EXCLUDED.has_cctv,
        biz_remarks    = EXCLUDED.biz_remarks,
-       active_device_id = COALESCE(EXCLUDED.active_device_id, shops.active_device_id),
        updated_at     = NOW()
      RETURNING *`,
     [uid, phone, shopName, shopAddress || '', ownerName || '',
      district || '', gstNumber || '', licenceNumber || '',
-     retailId || '', hasCctv || false, bizRemarks || '', incomingDeviceId]
+     retailId || '', hasCctv || false, bizRemarks || '']
   );
 
   const shop = result.rows[0];

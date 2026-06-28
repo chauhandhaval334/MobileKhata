@@ -41,6 +41,38 @@ CREATE TABLE IF NOT EXISTS shops (
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS fcm_token TEXT DEFAULT NULL;
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS active_device_id TEXT DEFAULT NULL;
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id         SERIAL PRIMARY KEY,
+  uid        VARCHAR(255) UNIQUE NOT NULL,
+  email      VARCHAR(255) NOT NULL,
+  role       VARCHAR(50) DEFAULT 'admin',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- App Config Table
+CREATE TABLE IF NOT EXISTS app_config (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Seed app_config defaults
+INSERT INTO app_config (key, value) VALUES
+  ('support_whatsapp',   '+918160707979'),
+  ('support_email',      'support@mobilekhata.com'),
+  ('privacy_policy_url', 'https://sites.google.com/view/mobilekhata/home'),
+  ('min_app_version_code', '3'),
+  ('app_update_url', 'https://play.google.com/store/apps/details?id=com.mobilekhata'),
+  ('website_hero_title', 'Manage Your Mobile Shop with Ease'),
+  ('website_hero_subtitle', 'MobileKhata is the ultimate ledger and inventory management app designed specifically for mobile shop owners. Keep track of sales, purchases, and repairs effortlessly.'),
+  ('website_about_text', 'MobileKhata was built to solve the daily challenges of mobile shop owners. From tracking IMEI numbers to maintaining customer ledgers and generating professional PDF invoices, our app digitizes your entire business workflow.')
+ON CONFLICT (key) DO NOTHING;
+
+
 CREATE INDEX IF NOT EXISTS idx_shops_firebase_uid ON shops(firebase_uid);
 
 -- ────────────────────────────────────────────────────────────
@@ -54,11 +86,18 @@ CREATE TABLE IF NOT EXISTS user_features (
     can_purchase        BOOLEAN NOT NULL DEFAULT FALSE,
     can_repair          BOOLEAN NOT NULL DEFAULT FALSE,
     can_reports         BOOLEAN NOT NULL DEFAULT FALSE,
-    free_entries_limit  INTEGER NOT NULL DEFAULT 3,
+    free_entries_limit  INTEGER NOT NULL DEFAULT 10,
     free_entries_used   INTEGER NOT NULL DEFAULT 0,
+    premium_expires_at  TIMESTAMPTZ DEFAULT NULL,
+    free_days_limit     INTEGER NOT NULL DEFAULT 30,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Safe incremental updates for existing databases
+ALTER TABLE user_features ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE user_features ADD COLUMN IF NOT EXISTS free_days_limit INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE user_features ALTER COLUMN free_entries_limit SET DEFAULT 10;
 
 CREATE INDEX IF NOT EXISTS idx_user_features_shop_id ON user_features(shop_id);
 
@@ -228,6 +267,99 @@ CREATE INDEX IF NOT EXISTS idx_sync_log_entity    ON sync_log(entity_type, entit
 CREATE INDEX IF NOT EXISTS idx_sync_log_synced_at ON sync_log(synced_at DESC);
 
 -- ────────────────────────────────────────────────────────────
+-- TABLE: premium_plans
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS premium_plans (
+    id               TEXT PRIMARY KEY,
+    sku_id           TEXT NOT NULL,
+    name             TEXT NOT NULL,
+    name_hi          TEXT NOT NULL DEFAULT '',
+    name_gu          TEXT NOT NULL DEFAULT '',
+    price            INTEGER NOT NULL,
+    currency         TEXT NOT NULL DEFAULT '₹',
+    duration         INTEGER NOT NULL,
+    unit             TEXT NOT NULL DEFAULT 'months',
+    popular          BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Seed initial plans
+INSERT INTO premium_plans (id, sku_id, name, name_hi, name_gu, price, currency, duration, unit, popular, is_active)
+VALUES
+  ('plan_6m', 'play_premium_6m', '6 Months', '6 महीने', '6 મહિના', 599, '₹', 6, 'months', false, true),
+  ('plan_1y', 'play_premium_1y', '1 Year', '1 साल', '1 વર્ષ', 999, '₹', 12, 'months', true, true)
+ON CONFLICT (id) DO UPDATE SET
+  price = EXCLUDED.price,
+  sku_id = EXCLUDED.sku_id,
+  updated_at = NOW();
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: shop_plan_activations
+-- Tracks plan purchase / activation history
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS shop_plan_activations (
+    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shop_id      UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+    plan_id      TEXT REFERENCES premium_plans(id) ON DELETE SET NULL,
+    price_paid   INTEGER NOT NULL DEFAULT 0,
+    activated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at   TIMESTAMPTZ NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_plan_activations_shop_id ON shop_plan_activations(shop_id);
+CREATE INDEX IF NOT EXISTS idx_shop_plan_activations_activated_at ON shop_plan_activations(activated_at);
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: special_offers
+-- One Time Offer (OTO) popup — backend-managed promotional offer
+-- Admin configures discount, price, countdown timer.
+-- App reads via GET /api/v1/shop/plans (offer field)
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS special_offers (
+    id                  TEXT PRIMARY KEY,
+    is_active           BOOLEAN NOT NULL DEFAULT FALSE,
+    title               TEXT NOT NULL DEFAULT 'One Time Offer',
+    title_hi            TEXT NOT NULL DEFAULT 'एक बार का ऑफर',
+    title_gu            TEXT NOT NULL DEFAULT 'એક વખત ઓફર',
+    subtitle            TEXT NOT NULL DEFAULT 'Limited Time Offer',
+    subtitle_hi         TEXT NOT NULL DEFAULT 'सीमित समय ऑफर',
+    subtitle_gu         TEXT NOT NULL DEFAULT 'સીમિત સમય ઓફર',
+    discount_pct        INTEGER NOT NULL DEFAULT 40,
+    plan_id             TEXT REFERENCES premium_plans(id) ON DELETE SET NULL,
+    original_price      INTEGER NOT NULL DEFAULT 999,
+    offer_price         INTEGER NOT NULL DEFAULT 599,
+    currency            TEXT NOT NULL DEFAULT '₹',
+    price_unit          TEXT NOT NULL DEFAULT 'per year',
+    price_unit_hi       TEXT NOT NULL DEFAULT 'प्रति वर्ष',
+    price_unit_gu       TEXT NOT NULL DEFAULT 'દર વર્ષ',
+    countdown_seconds   INTEGER NOT NULL DEFAULT 600,
+    bg_gradient_start   TEXT NOT NULL DEFAULT '#0f0f1a',
+    bg_gradient_end     TEXT NOT NULL DEFAULT '#1a0a2e',
+    accent_color_start  TEXT NOT NULL DEFAULT '#FF6B6B',
+    accent_color_end    TEXT NOT NULL DEFAULT '#FF8E53',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Seed: Default inactive offer linked to 1-year plan
+INSERT INTO special_offers (
+  id, is_active, title, title_hi, title_gu,
+  subtitle, subtitle_hi, subtitle_gu,
+  discount_pct, plan_id,
+  original_price, offer_price, currency, price_unit, price_unit_hi, price_unit_gu,
+  countdown_seconds, bg_gradient_start, bg_gradient_end, accent_color_start, accent_color_end
+) VALUES (
+  'oto_main', FALSE,
+  'One Time Offer', 'एक बार का ऑफर', 'એક વખત ઓફર',
+  'Limited Time Offer', 'सीमित समय ऑफर', 'સીમિત સમય ઓફર',
+  40, 'plan_1y', 999, 599, '₹', 'per year', 'प्रति वर्ष', 'દર વર્ષ',
+  600, '#0f0f1a', '#1a0a2e', '#FF6B6B', '#FF8E53'
+) ON CONFLICT (id) DO NOTHING;
+
+-- ────────────────────────────────────────────────────────────
 -- VIEW: imei_lifecycle
 -- Replaces timeline_events aggregation queries on Android
 -- Shows full ownership chain for any IMEI
@@ -303,6 +435,7 @@ DROP TRIGGER IF EXISTS trg_shops_updated_at        ON shops;
 DROP TRIGGER IF EXISTS trg_customers_updated_at    ON customers;
 DROP TRIGGER IF EXISTS trg_devices_updated_at      ON devices;
 DROP TRIGGER IF EXISTS trg_transactions_updated_at ON transactions;
+DROP TRIGGER IF EXISTS trg_premium_plans_updated_at ON premium_plans;
 
 CREATE TRIGGER trg_shops_updated_at
     BEFORE UPDATE ON shops
@@ -319,3 +452,160 @@ CREATE TRIGGER trg_devices_updated_at
 CREATE TRIGGER trg_transactions_updated_at
     BEFORE UPDATE ON transactions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER trg_premium_plans_updated_at
+    BEFORE UPDATE ON premium_plans
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ────────────────────────────────────────────────────────────
+-- FEEDBACK & IMPROVEMENT CENTER TABLES
+-- ────────────────────────────────────────────────────────────
+
+-- Sequence for ticket numbering (e.g., MK-2026-000245)
+CREATE SEQUENCE IF NOT EXISTS feedback_ticket_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    CACHE 1;
+
+-- TABLE: feedback_tickets
+-- Stores main feedback tickets
+CREATE TABLE IF NOT EXISTS feedback_tickets (
+    id                UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_number     TEXT        NOT NULL UNIQUE,
+    shop_id           UUID        REFERENCES shops(id) ON DELETE SET NULL,
+    feedback_type     TEXT        NOT NULL DEFAULT 'other'
+                      CHECK (feedback_type IN (
+                        'bug_report','feature_request','improvement',
+                        'ui_ux','performance','payment_issue',
+                        'premium_issue','report_issue','sync_issue','other'
+                      )),
+    subject           TEXT        NOT NULL DEFAULT '',
+    description       TEXT        NOT NULL DEFAULT '',
+    status            TEXT        NOT NULL DEFAULT 'open'
+                      CHECK (status IN ('open','under_review','in_progress','resolved','closed')),
+    priority          TEXT        NOT NULL DEFAULT 'medium'
+                      CHECK (priority IN ('critical','high','medium','low')),
+    app_version       TEXT        NOT NULL DEFAULT '',
+    app_version_code  TEXT        NOT NULL DEFAULT '',
+    android_version   TEXT        NOT NULL DEFAULT '',
+    device_brand      TEXT        NOT NULL DEFAULT '',
+    device_model      TEXT        NOT NULL DEFAULT '',
+    screen_resolution TEXT        NOT NULL DEFAULT '',
+    app_language      TEXT        NOT NULL DEFAULT '',
+    subscription_status TEXT      NOT NULL DEFAULT '',
+    login_account     TEXT        NOT NULL DEFAULT '',
+    firebase_uid      TEXT        NOT NULL DEFAULT '',
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    resolved_at       TIMESTAMPTZ DEFAULT NULL,
+    closed_at         TIMESTAMPTZ DEFAULT NULL
+);
+
+-- TABLE: feedback_attachments
+-- Stores attachments (screenshots, videos, voice notes) in Firebase Storage
+CREATE TABLE IF NOT EXISTS feedback_attachments (
+    id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_id       UUID        NOT NULL REFERENCES feedback_tickets(id) ON DELETE CASCADE,
+    shop_id         UUID        REFERENCES shops(id) ON DELETE SET NULL,
+    firebase_url    TEXT        NOT NULL DEFAULT '',
+    file_name       TEXT        NOT NULL DEFAULT '',
+    mime_type       TEXT        NOT NULL DEFAULT '',
+    file_size_bytes INTEGER     NOT NULL DEFAULT 0,
+    attachment_type TEXT        NOT NULL DEFAULT 'document'
+                    CHECK (attachment_type IN ('screenshot','video','voice','document')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- TABLE: feedback_replies
+-- Threaded user and admin conversation
+CREATE TABLE IF NOT EXISTS feedback_replies (
+    id            UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_id     UUID        NOT NULL REFERENCES feedback_tickets(id) ON DELETE CASCADE,
+    sender_type   TEXT        NOT NULL CHECK (sender_type IN ('user','admin')),
+    sender_label  TEXT        NOT NULL DEFAULT '',
+    message       TEXT        NOT NULL DEFAULT '',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- TABLE: feedback_notes
+-- Internal admin notes (not visible to user)
+CREATE TABLE IF NOT EXISTS feedback_notes (
+    id         UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_id  UUID        NOT NULL REFERENCES feedback_tickets(id) ON DELETE CASCADE,
+    admin_uid  TEXT        NOT NULL DEFAULT '',
+    note       TEXT        NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for feedback tables
+CREATE INDEX IF NOT EXISTS idx_feedback_tickets_shop_id    ON feedback_tickets(shop_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_tickets_status     ON feedback_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_feedback_tickets_priority   ON feedback_tickets(priority);
+CREATE INDEX IF NOT EXISTS idx_feedback_tickets_type       ON feedback_tickets(feedback_type);
+CREATE INDEX IF NOT EXISTS idx_feedback_tickets_created_at ON feedback_tickets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_attachments_ticket ON feedback_attachments(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_replies_ticket     ON feedback_replies(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_notes_ticket       ON feedback_notes(ticket_id);
+
+-- Attach trigger for feedback_tickets
+DROP TRIGGER IF EXISTS trg_feedback_tickets_updated_at ON feedback_tickets;
+CREATE TRIGGER trg_feedback_tickets_updated_at
+    BEFORE UPDATE ON feedback_tickets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+
+-- ────────────────────────────────────────────────────────────
+-- UNIFIED BILL BOOK TABLES
+-- ────────────────────────────────────────────────────────────
+
+-- TABLE: bills
+-- Consolidated bills generated manually or from other modules
+CREATE TABLE IF NOT EXISTS bills (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    remote_id           UUID        UNIQUE DEFAULT uuid_generate_v4(),
+    android_bill_id     BIGINT      NOT NULL DEFAULT 0,
+    shop_id             UUID        REFERENCES shops(id) ON DELETE CASCADE,
+    bill_number         TEXT        NOT NULL DEFAULT '',
+    bill_type           TEXT        NOT NULL DEFAULT 'Invoice'
+                        CHECK (bill_type IN ('Cash Bill','Estimate','Invoice','Receipt','Quotation','Custom Bill')),
+    source_module       TEXT        NOT NULL DEFAULT 'manual'
+                        CHECK (source_module IN (
+                          'manual','mobile_sale','mobile_purchase','mobile_repair',
+                          'accessories_sale','accessories_purchase'
+                        )),
+    payment_status      TEXT        NOT NULL DEFAULT 'Paid'
+                        CHECK (payment_status IN ('Draft','Paid','Unpaid','Partial Payment','Cancelled')),
+    customer_name       TEXT        NOT NULL DEFAULT '',
+    customer_mobile     TEXT        NOT NULL DEFAULT '',
+    customer_address    TEXT        NOT NULL DEFAULT '',
+    customer_gstin      TEXT        NOT NULL DEFAULT '',
+    items_json          TEXT        NOT NULL DEFAULT '[]',
+    subtotal            DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    tax_percent         DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    tax_amount          DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    discount_amount     DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    grand_total         DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    payment_method      TEXT        NOT NULL DEFAULT 'Cash',
+    template_type       TEXT        NOT NULL DEFAULT 'Simple',
+    timeline_json       TEXT        NOT NULL DEFAULT '[]',
+    created_at_millis   BIGINT      NOT NULL DEFAULT 0,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE (shop_id, android_bill_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bills_shop_id        ON bills(shop_id);
+CREATE INDEX IF NOT EXISTS idx_bills_bill_number    ON bills(bill_number);
+CREATE INDEX IF NOT EXISTS idx_bills_customer_phone ON bills(customer_mobile);
+CREATE INDEX IF NOT EXISTS idx_bills_source_module  ON bills(source_module);
+CREATE INDEX IF NOT EXISTS idx_bills_created_at     ON bills(created_at_millis DESC);
+
+-- Attach trigger for bills
+DROP TRIGGER IF EXISTS trg_bills_updated_at ON bills;
+CREATE TRIGGER trg_bills_updated_at
+    BEFORE UPDATE ON bills
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+

@@ -4,6 +4,14 @@
 # instantly samajh sake. Har session mein is file ko refer karo.
 # Last Updated: June 2026
 
+# ⚠️ CRITICAL RULE FOR ALL GENERATIONS (LIVE APP COMPATIBILITY):
+# -------------------------------------------------------------
+# 1. PLAY STORE LIVE APP / REVIEW SAFETY: Ek app version Play Store review ya live use mein hai.
+# 2. NO BREAKING CHANGES: Backend API (v1 routes) aur database schema mein koi breaking change nahi karni hai.
+# 3. EXPAND & CONTRACT ONLY: Database changes ke liye hamesha naye fields add karein, purane columns ko rename/delete na karein. Naye columns hamesha Nullable ya Default value ke sath hone chahiye taaki v1 endpoints crash na hon.
+# 4. DUAL WRITING: Agar kisi field ko evolve karna hai to dual-writing aur data-backfilling ka use karein.
+# ===============================================
+
 ---
 
 ## 🧠 PROJECT IDENTITY

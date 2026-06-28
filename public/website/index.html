@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MobileKhata - Modern Mobile Shop Ledger & Inventory Management App</title>
+  <meta name="description" content="Digitize your mobile retail shop with MobileKhata. Easily track purchases, sales, IMEI numbers, customer ledgers, repairs, and generate professional PDF invoices. Download now on Google Play.">
+  <meta name="keywords" content="mobile shop ledger, IMEI tracker, mobile bill book, mobile khata book, mobile repair book, shop inventory manager, GST billing app">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+        </div>
+        <span>Mobile<span>Khata</span></span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#why-choose">Why Us</a>
+        <a href="#plans">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact" class="nav-cta">Contact Support</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-blobs">
+      <div class="blob blob-indigo"></div>
+      <div class="blob blob-orange"></div>
+    </div>
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <div class="badge">🔥 Complete Mobile Retail Solution</div>
+        <h1 class="hero-title" id="hero-title">Manage Your Mobile Shop with Ease</h1>
+        <p class="hero-subtitle" id="hero-subtitle">MobileKhata is the ultimate ledger and inventory management app designed specifically for mobile shop owners. Keep track of sales, purchases, repairs, and IMEI lifecycles effortlessly.</p>
+        
+        <div class="hero-actions">
+          <a href="https://play.google.com/store/apps/details?id=com.mobilekhata" id="download-btn" class="btn btn-playstore" target="_blank" rel="noopener noreferrer">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28">
+              <path fill="#ffffff" d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L14.4,12.71L10.03,8.34L15.6,2.77C16.38,2 17.65,2.05 18.36,2.83L21.36,5.83C22.07,6.54 22.07,7.69 21.36,8.4L16.81,15.12Z" />
+              <path fill="#ffffff" d="M16.81,15.12L21.36,19.67C22.07,20.38 22.07,21.53 21.36,22.24C20.65,22.95 19.5,22.95 18.79,22.24L4.54,8L10.03,8.34L14.4,12.71L16.81,15.12Z" opacity="0.8"/>
+              <path fill="#ffffff" d="M4.54,8L18.79,22.24C19.5,22.95 20.65,22.95 21.36,22.24L16.81,15.12L10.03,8.34L4.54,8Z" opacity="0.6"/>
+            </svg>
+            <div class="btn-text">
+              <span>GET IT ON</span>
+              <strong>Google Play</strong>
+            </div>
+          </a>
+          
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-val">10K+</span>
+              <span class="stat-lbl">Downloads</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">4.8★</span>
+              <span class="stat-lbl">Rating</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hero-mockup">
+        <div class="phone-mockup">
+          <div class="screen-glow"></div>
+          <div class="phone-frame">
+            <div class="phone-camera"></div>
+            <div class="phone-screen">
+              <!-- Internal vector graphic displaying app layout -->
+              <div class="app-ui">
+                <div class="app-header">
+                  <span>MobileKhata</span>
+                  <div class="premium-badge">👑 Premium</div>
+                </div>
+                <div class="app-card">
+                  <span class="card-title">Today's Sales</span>
+                  <span class="card-amount">₹48,500</span>
+                  <div class="card-trend">📈 +12% from yesterday</div>
+                </div>
+                <div class="app-menu">
+                  <div class="menu-item"><span class="icon">📥</span><span>Purchase</span></div>
+                  <div class="menu-item"><span class="icon">📤</span><span>Sell</span></div>
+                  <div class="menu-item"><span class="icon">🛠️</span><span>Repair</span></div>
+                  <div class="menu-item"><span class="icon">📋</span><span>Reports</span></div>
+                </div>
+                <div class="app-list">
+                  <div class="list-title">Recent Transactions</div>
+                  <div class="list-item">
+                    <div>
+                      <strong>iPhone 15 Pro</strong>
+                      <span>IMEI: 358201... • Sale</span>
+                    </div>
+                    <span class="price positive">₹84,999</span>
+                  </div>
+                  <div class="list-item">
+                    <div>
+                      <strong>Galaxy S24</strong>
+                      <span>IMEI: 359482... • Buy</span>
+                    </div>
+                    <span class="price negative">-₹52,000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Features Section -->
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Comprehensive Features</h2>
+        <p class="section-subtitle">Everything you need to digitize and manage your mobile retail showroom.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card glass-card">
+          <div class="feature-icon icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+          <h3>Digital Customer Ledger</h3>
+          <p>Ditch the paper books. Maintain precise Udhar (Credit) and Jama (Debit) accounts for all clients with dynamic logs.</p>
+        </div>
+        
+        <div class="feature-card glass-card">
+          <div class="feature-icon icon-orange">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+              <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+          </div>
+          <h3>IMEI & Serial Tracker</h3>
+          <p>Search sales history instantly by IMEI or Serial Number. Prevent fraud and verify warranty cycles with ease.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon icon-green">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <circle cx="10" cy="13" r="2"></circle>
+              <line x1="12" y1="15" x2="16" y2="19"></line>
+            </svg>
+          </div>
+          <h3>Professional PDF Invoices</h3>
+          <p>Generate clean, professional invoices complete with your store details, GSTIN, and custom logo. Print or share via WhatsApp instantly.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon icon-indigo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </div>
+          <h3>Repair Booking Logs</h3>
+          <p>Keep track of pending device repairs, estimated delivery dates, service charges, customer remarks, and repair status tags.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon icon-red">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+            </svg>
+          </div>
+          <h3>Stock & Inventory Metrics</h3>
+          <p>Get real-time insights on your in-stock mobile models, purchase values, potential sales revenue, and margins.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon icon-yellow">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+              <path d="M12 6v6l4 2"></path>
+            </svg>
+          </div>
+          <h3>Secure Sync & Backup</h3>
+          <p>Your business database is backed up securely in real-time. Restore all logs on any phone with single-click OTP sign-in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Choose Us Section -->
+  <section id="why-choose" class="why-choose">
+    <div class="container why-grid">
+      <div class="why-visual">
+        <div class="visual-card glass-card">
+          <h4>Old Offline Method</h4>
+          <ul class="bad-list">
+            <li>❌ Messy diaries & lost papers</li>
+            <li>❌ High risk of IMEI recording typos</li>
+            <li>❌ Customer invoice disputes</li>
+            <li>❌ No record search or dashboard analytics</li>
+          </ul>
+        </div>
+        <div class="visual-card glass-card highlighting">
+          <h4>Modern MobileKhata Method</h4>
+          <ul class="good-list">
+            <li>✅ Safe, organized digital ledger</li>
+            <li>✅ Instant search by scanning device barcode</li>
+            <li>✅ WhatsApp PDF invoice delivery</li>
+            <li>✅ Professional statistics dashboards</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="why-text">
+        <h2 class="section-title text-left">Why Choose Mobile Khata?</h2>
+        <p class="why-description">Standard ledger apps are not made for mobile retail shops. They do not track IMEI, device specifications, color variations, or repair booking statuses. MobileKhata is custom-tailored with specialized forms matching mobile retail transactions.</p>
+        
+        <div class="benefit-item">
+          <strong>⚡ Built for Mobile Retailers</strong>
+          <p>Fields for IMEI1, IMEI2, Brand, Model, Storage capacity, and Device condition logic built directly into the core setup.</p>
+        </div>
+        <div class="benefit-item">
+          <strong>🔐 Bank-Grade Security</strong>
+          <p>All data is hosted securely. Encrypted transactions ensure database integrity with optional local App Lock PIN security.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Premium Plans Section -->
+  <section id="plans" class="plans">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Simple Premium Pricing</h2>
+        <p class="section-subtitle">Unlock unlimited entries, custom invoices, and premium reports.</p>
+      </div>
+      
+      <div class="plans-grid">
+        <div class="plan-card glass-card">
+          <h3>6 Months Access</h3>
+          <div class="plan-price">
+            <span class="currency">₹</span>
+            <span class="value">599</span>
+            <span class="duration">/ 6 mo</span>
+          </div>
+          <p class="plan-equivalent">Equivalent to ₹99 per month</p>
+          <hr>
+          <ul>
+            <li>✅ Unlimited Transactions (Sale/Buy/Repair)</li>
+            <li>✅ Dynamic PDF Invoice Generator</li>
+            <li>✅ Brand Logo on Bills</li>
+            <li>✅ Realtime Cloud Sync & Database Backup</li>
+            <li>✅ 24/7 Priority Support</li>
+          </ul>
+          <a href="https://play.google.com/store/apps/details?id=com.mobilekhata" class="btn btn-plan">Choose 6 Months</a>
+        </div>
+        
+        <div class="plan-card glass-card popular">
+          <div class="popular-badge">🌟 Best Value - Save 60%</div>
+          <h3>1 Year Access</h3>
+          <div class="plan-price">
+            <span class="currency">₹</span>
+            <span class="value">999</span>
+            <span class="duration">/ year</span>
+          </div>
+          <p class="plan-equivalent">Equivalent to ₹83 per month</p>
+          <hr>
+          <ul>
+            <li>✅ Unlimited Transactions (Sale/Buy/Repair)</li>
+            <li>✅ Dynamic PDF Invoice Generator</li>
+            <li>✅ Brand Logo on Bills</li>
+            <li>✅ Realtime Cloud Sync & Database Backup</li>
+            <li>✅ 24/7 Priority Support</li>
+            <li>✅ Advanced Revenue Reports & Graphs</li>
+          </ul>
+          <a href="https://play.google.com/store/apps/details?id=com.mobilekhata" class="btn btn-plan-active">Choose 1 Year</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Loved by Mobile Shop Owners</h2>
+        <p class="section-subtitle">See how retailers are simplifying their accounting and inventory tasks.</p>
+      </div>
+      
+      <div class="testimonials-grid">
+        <div class="testimonial-card glass-card">
+          <p>"MobileKhata has completely digitized my shop. Searching device sales histories using IMEI numbers takes just 2 seconds now instead of searching through old paper ledger notebooks!"</p>
+          <div class="owner-info">
+            <div class="owner-avatar">R</div>
+            <div>
+              <strong>Rajesh Sharma</strong>
+              <span>Owner, Sharma Mobile Gallery</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card glass-card">
+          <p>"Generating neat PDF bills and sharing them directly to customers on WhatsApp looks professional. The cloud backup is awesome; I switched phones and restored all data instantly."</p>
+          <div class="owner-info">
+            <div class="owner-avatar">K</div>
+            <div>
+              <strong>Karan Patel</strong>
+              <span>Owner, Patel Telecom & Repairs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="faq">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Got questions? We've got answers.</p>
+      </div>
+      
+      <div class="faq-accordion">
+        <details class="glass-card">
+          <summary>Is my business data secure?</summary>
+          <p>Absolutely. Your ledger database is fully encrypted and synced to cloud nodes in real-time. Only you can access your account using phone OTP validation.</p>
+        </details>
+        
+        <details class="glass-card">
+          <summary>Can I run MobileKhata offline?</summary>
+          <p>Yes. You can add entries, view inventories, and look up customers without internet connection. Any changes you make will sync automatically once connection is restored.</p>
+        </details>
+        
+        <details class="glass-card">
+          <summary>How do I upgrade to the premium subscription?</summary>
+          <p>Load the app, go to Settings &gt; Plan &amp; Subscription, choose your plan, and complete the payment using Google Play Billing. Premium is activated immediately upon payment verification.</p>
+        </details>
+
+        <details class="glass-card">
+          <summary>What if I change my phone?</summary>
+          <p>Just download the MobileKhata app on your new phone, enter your registered mobile number, and enter the verification OTP. All your transactions, stock records, and ledger balances will be synchronized automatically.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="contact">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-text">
+          <h2>Get in Touch</h2>
+          <p>Have questions about premium features, custom enterprise requirements, or technical support? Reach out to our dedicated support team.</p>
+          <div class="contact-links">
+            <p>📧 Email: <a href="mailto:support@mobilekhata.com">support@mobilekhata.com</a></p>
+            <p>💬 WhatsApp Assistance: <a href="https://wa.me/918160707979" target="_blank" rel="noopener">+91 8160707979</a></p>
+          </div>
+        </div>
+        <div class="contact-card glass-card">
+          <form id="web-contact-form">
+            <div class="form-group">
+              <label for="form-name">Full Name</label>
+              <input type="text" id="form-name" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+              <label for="form-phone">Shop Mobile Number</label>
+              <input type="tel" id="form-phone" placeholder="9876543210" required>
+            </div>
+            <div class="form-group">
+              <label for="form-message">How can we help you?</label>
+              <textarea id="form-message" rows="4" placeholder="Your query here..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-submit">Send Message</button>
+            <p id="form-feedback" class="form-feedback"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <span>Mobile<span>Khata</span></span>
+        </div>
+        <p>Digitizing mobile retail showroom management. Secure digital ledgers, serial/IMEI record books, PDF invoice engines, and business dashboards.</p>
+      </div>
+      <div class="footer-links">
+        <h3>Sitemap</h3>
+        <a href="#features">Features</a>
+        <a href="#why-choose">Why Us</a>
+        <a href="#plans">Pricing Plans</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="footer-links">
+        <h3>Contact Support</h3>
+        <p id="support-email-text"><a href="mailto:support@mobilekhata.com">support@mobilekhata.com</a></p>
+        <p id="support-whatsapp-text"><a href="https://wa.me/918160707979" target="_blank" rel="noopener">WhatsApp Chat: +91 8160707979</a></p>
+      </div>
+      <div class="footer-legal">
+        <h3>Legal</h3>
+        <a href="https://sites.google.com/view/mobilekhata/home" id="privacy-link" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="#" target="_blank" rel="noopener">Terms & Conditions</a>
+      </div>
+    </div>
+    <div class="copyright">
+      <p>&copy; 2026 MobileKhata. Designed for modern mobile retailers. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

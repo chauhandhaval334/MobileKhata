@@ -156,3 +156,14 @@ All endpoints (except `/health` and `/api/v1/health`) require an `Authorization:
 * **Server runner:** Run via PM2 using `ecosystem.config.js` to ensure zero-downtime clustering and auto-restart on crashes.
 * **Reverse Proxy:** Hosted behind Nginx which handles gzip compression, SSL termination, and routes all `/api` traffic to port `3000`.
 * **Database migrations:** Automated PostgreSQL migration runner using `npm run migrate`.
+
+---
+
+## 7. 🔮 Future Roadmap / Admin Panel Ideas
+
+These ideas are planned for future backend & admin portal updates:
+- **Premium Subscription & Plan Management:** Allow dropdown plan selection, subscription expiration dates, and quick WhatsApp text link for easy customer reminders.
+- **Shop Deactivation/Suspension:** Add toggle buttons to easily mark a shop as inactive in the database to restrict access if needed.
+- **KYC & Document Verification Gallery:** Review and verify uploaded customer Aadhaar and PAN cards directly on the admin dashboard.
+- **Analytics & Data Visualizations:** Add Chart.js to visualize daily registration rates, active sync counts, and district-wise usage distributions.
+- **Database Backup & Maintenance Utilities:** Button to trigger/download PostgreSQL dumps and a log clearing mechanism.

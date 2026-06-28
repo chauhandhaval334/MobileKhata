@@ -75,8 +75,35 @@ const requireShop = (req, res, next) => {
   if (!req.shop) {
     return forbidden(res, 'Shop profile not set up. Complete onboarding first.', 'SHOP_NOT_SETUP');
   }
+
+  // Active Device validation ONLY for v2 routes
+  const isV2 = (req.baseUrl && req.baseUrl.startsWith('/api/v2')) || (req.path && req.path.startsWith('/api/v2'));
+  if (isV2) {
+    const incomingDeviceId = req.headers['x-device-id'];
+    const activeDeviceId = req.shop.active_device_id;
+
+    if (activeDeviceId && incomingDeviceId && incomingDeviceId !== activeDeviceId) {
+      logger.warn('Session conflict: request from inactive device', {
+        shopId: req.shop.id,
+        incomingDeviceId,
+        activeDeviceId
+      });
+      res.setHeader('X-Session-Invalid', 'another_device');
+      return unauthorized(res, 'Your account has been logged in on another device.', 'SESSION_INVALID_ANOTHER_DEVICE');
+    }
+
+    // If no active device is set yet, register this one
+    if (!activeDeviceId && incomingDeviceId) {
+      query('UPDATE shops SET active_device_id = $1, updated_at = NOW() WHERE id = $2', [incomingDeviceId, req.shop.id])
+        .catch(err => logger.error('Failed to auto-set active device ID', { error: err.message }));
+      req.shop.active_device_id = incomingDeviceId;
+    }
+  }
+
   return next();
 };
+
+const requireShopV2 = requireShop;
 
 /**
  * requireAdmin
@@ -99,4 +126,4 @@ const requireAdmin = (req, res, next) => {
   return next();
 };
 
-module.exports = { verifyFirebaseToken, requireShop, requireAdmin };
+module.exports = { verifyFirebaseToken, requireShop, requireShopV2, requireAdmin };
