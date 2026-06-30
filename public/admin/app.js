@@ -719,7 +719,7 @@ async function fetchActivityFeed() {
     const items = result.data;
 
     if (!items || items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-5">No activity yet</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5">No activity yet</td></tr>`;
       return;
     }
 
@@ -737,7 +737,10 @@ async function fetchActivityFeed() {
       }
     };
 
-    tbody.innerHTML = items.map(item => {
+    // Store items in a map so button click can access full data
+    window._activityFeedItems = {};
+
+    tbody.innerHTML = items.map((item, idx) => {
       const t = new Date(item.activity_at);
       const dateStr = t.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
       const timeStr = t.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
@@ -753,6 +756,19 @@ async function fetchActivityFeed() {
 
       const amount = item.amount != null ? `₹${Number(item.amount).toLocaleString('en-IN')}` : '—';
 
+      // Store item data for detail popup
+      const itemKey = `af_${idx}`;
+      window._activityFeedItems[itemKey] = item;
+
+      // Button: transactions use the full detail modal; bills/premium use info popup
+      const detailBtn = item.activity_type === 'transaction'
+        ? `<button onclick="openTxnDetailModal('${escapeHtml(item.id)}')" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.35); color:#60a5fa; border-radius:8px; padding:0.35rem 0.7rem; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:0.3rem; white-space:nowrap;">
+            <i data-lucide="eye" style="width:13px;height:13px;"></i> Details
+          </button>`
+        : `<button onclick="openActivityInfoModal('${itemKey}')" style="background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.3); color:#c084fc; border-radius:8px; padding:0.35rem 0.7rem; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:0.3rem; white-space:nowrap;">
+            <i data-lucide="eye" style="width:13px;height:13px;"></i> Details
+          </button>`;
+
       return `<tr>
         <td><code style="font-size:0.78rem;">${dateStr}<br><span style="color:var(--text-muted);">${timeStr}</span></code></td>
         <td>${activityBadge(item)}</td>
@@ -761,6 +777,7 @@ async function fetchActivityFeed() {
         <td>${details}</td>
         <td><strong style="color:#60a5fa;">${amount}</strong></td>
         <td><span class="badge badge-feature" style="font-size:0.75rem;">${escapeHtml(item.payment_method || '—')}</span></td>
+        <td>${detailBtn}</td>
       </tr>`;
     }).join('');
 
@@ -769,6 +786,100 @@ async function fetchActivityFeed() {
     console.warn('Activity feed error:', err.message);
   }
 }
+
+// ─── ACTIVITY INFO MODAL (Bill / Premium quick detail) ────────────────────
+function openActivityInfoModal(itemKey) {
+  const item = window._activityFeedItems?.[itemKey];
+  if (!item) return;
+
+  const overlay = document.getElementById('txn-detail-overlay');
+  const body = document.getElementById('txn-modal-body');
+  const titleEl = document.getElementById('txn-modal-title');
+  const idEl = document.getElementById('txn-modal-id');
+
+  overlay.style.display = 'block';
+
+  const t = new Date(item.activity_at);
+  const dateStr = t.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const amount = item.amount != null ? `₹${Number(item.amount).toLocaleString('en-IN')}` : '—';
+
+  const fieldRow = (label, value, mono = false) =>
+    `<div style="display:flex; gap:0.5rem; padding:0.55rem 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+      <div style="min-width:150px; font-size:0.82rem; color:var(--text-muted); font-weight:500;">${label}</div>
+      <div style="font-size:0.85rem; color:#fff; ${mono ? 'font-family:monospace;' : ''} word-break:break-all;">${value || '<span style="color:var(--text-muted);">—</span>'}</div>
+    </div>`;
+
+  const section = (title, icon, content) =>
+    `<div style="margin-bottom:1.5rem;">
+      <h4 style="margin:0 0 0.75rem; font-size:0.9rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:0.5rem;">
+        <i data-lucide="${icon}" style="width:15px;height:15px;"></i> ${title}
+      </h4>
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:0.5rem 1rem;">
+        ${content}
+      </div>
+    </div>`;
+
+  if (item.activity_type === 'bill') {
+    titleEl.textContent = `Bill — ${item.customer_name || item.shop_name}`;
+    idEl.textContent = `Bill #${item.bill_number || '—'} · ${item.sub_type} Template`;
+
+    body.innerHTML = `
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:center;">
+        <span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:0.9rem;padding:0.4rem 0.9rem;">🧾 ${escapeHtml(item.sub_type || 'Bill')}</span>
+        <span style="font-size:1.4rem; font-weight:800; color:#fff;">${amount}</span>
+        <span class="badge badge-feature">${escapeHtml(item.payment_method || '—')}</span>
+      </div>
+
+      ${section('Bill Info', 'receipt', `
+        ${fieldRow('Date & Time', dateStr)}
+        ${fieldRow('Bill Number', escapeHtml(item.bill_number || '—'), true)}
+        ${fieldRow('Template Type', escapeHtml(item.sub_type || '—'))}
+        ${fieldRow('Amount', amount)}
+        ${fieldRow('Payment Method', escapeHtml(item.payment_method || '—'))}
+      `)}
+
+      ${section('Customer', 'user', `
+        ${fieldRow('Name', `<strong>${escapeHtml(item.customer_name || '—')}</strong>`)}
+        ${fieldRow('Mobile', escapeHtml(item.customer_mobile || '—'), true)}
+      `)}
+
+      ${section('Shop', 'store', `
+        ${fieldRow('Shop Name', `<strong>${escapeHtml(item.shop_name || '—')}</strong>`)}
+        ${fieldRow('Owner', escapeHtml(item.owner_name || '—'))}
+        ${fieldRow('Phone', escapeHtml(item.shop_phone || '—'), true)}
+      `)}
+    `;
+  } else if (item.activity_type === 'premium') {
+    titleEl.textContent = `Premium Activated — ${item.shop_name}`;
+    idEl.textContent = `Plan: ${item.plan_id || 'Custom'}`;
+
+    const planLabel = item.plan_id === 'plan_6m' ? '6 Months' : (item.plan_id === 'plan_1y' ? '1 Year' : (item.plan_id || 'Custom'));
+    const planColor = item.plan_id === 'plan_1y' ? '#a855f7' : (item.plan_id === 'plan_6m' ? '#3b82f6' : '#f97316');
+
+    body.innerHTML = `
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:center;">
+        <span class="badge" style="background:${planColor}22;color:${planColor};border:1px solid ${planColor}44;font-size:0.9rem;padding:0.4rem 0.9rem;">⭐ ${planLabel}</span>
+        <span style="font-size:1.4rem; font-weight:800; color:#fff;">${amount}</span>
+      </div>
+
+      ${section('Subscription Info', 'crown', `
+        ${fieldRow('Activated On', dateStr)}
+        ${fieldRow('Plan', planLabel)}
+        ${fieldRow('Price Paid', amount)}
+      `)}
+
+      ${section('Shop Details', 'store', `
+        ${fieldRow('Shop Name', `<strong>${escapeHtml(item.shop_name || '—')}</strong>`)}
+        ${fieldRow('Owner', escapeHtml(item.owner_name || '—'))}
+        ${fieldRow('Phone', escapeHtml(item.shop_phone || '—'), true)}
+      `)}
+    `;
+  }
+
+  lucide.createIcons();
+}
+window.openActivityInfoModal = openActivityInfoModal;
+
 
 function toggleActivityAutoRefresh() {
   const btn = document.getElementById('activity-refresh-toggle');
