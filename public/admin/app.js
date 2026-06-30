@@ -866,6 +866,7 @@ async function fetchTransactions() {
       <td><div class="shimmer-line short"></div></td>
       <td><div class="shimmer-line short"></div></td>
       <td><div class="shimmer-line"></div></td>
+      <td><div class="shimmer-line short"></div></td>
     </tr>
   `).join('');
 
@@ -894,7 +895,7 @@ async function fetchTransactions() {
     if (txns.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center text-muted py-5">
+          <td colspan="9" class="text-center text-muted py-5">
             <i data-lucide="clipboard-x" class="large-icon mb-2"></i>
             <p>No transactions registered for this shop.</p>
           </td>
@@ -918,7 +919,7 @@ async function fetchTransactions() {
           <td><span class="badge ${typeBadgeClass}">${t.txn_type}</span></td>
           <td>
             <strong>${escapeHtml(t.brand)} ${escapeHtml(t.model)}</strong>
-            <div class="text-muted" style="font-size: 0.75rem">${escapeHtml(t.color)} • ${escapeHtml(t.storage)}</div>
+            <div class="text-muted" style="font-size: 0.75rem">${escapeHtml(t.color || '')} • ${escapeHtml(t.storage || '')}</div>
           </td>
           <td><code>${escapeHtml(t.imei1)}</code></td>
           <td>
@@ -927,8 +928,13 @@ async function fetchTransactions() {
           </td>
           <td><span class="badge badge-feature">${escapeHtml(t.payment_method)}</span></td>
           <td><strong>₹${t.amount.toLocaleString('en-IN')}</strong></td>
-          <td class="text-muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(t.remarks || '')}">
+          <td class="text-muted" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(t.remarks || '')}">
             ${escapeHtml(t.remarks || '-')}
+          </td>
+          <td>
+            <button onclick="openTxnDetailModal('${t.id}')" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.35); color:#60a5fa; border-radius:8px; padding:0.35rem 0.7rem; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:0.3rem; white-space:nowrap;">
+              <i data-lucide="eye" style="width:13px;height:13px;"></i> Details
+            </button>
           </td>
         </tr>
       `;
@@ -947,7 +953,7 @@ async function fetchTransactions() {
 
   } catch (err) {
     showToast(err.message, 'error');
-    tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Error loading transactions</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-3">Error loading transactions</td></tr>`;
     pagination.innerHTML = '';
   }
 }
@@ -960,7 +966,7 @@ window.changeLedgerPage = function(page) {
 function renderEmptyLedger() {
   document.getElementById('transactions-table-body').innerHTML = `
     <tr>
-      <td colspan="8" class="text-center text-muted py-5">
+      <td colspan="9" class="text-center text-muted py-5">
         <i data-lucide="store" class="large-icon mb-2"></i>
         <p>Select a shop from the dropdown above to load transaction ledger</p>
       </td>
@@ -2858,7 +2864,8 @@ async function deleteCatalogModel(id) {
 }
 
 function escapeHtml(str) {
-  return str
+  if (!str) return '';
+  return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -2866,4 +2873,142 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+// ─── TRANSACTION DETAIL MODAL ─────────────────────────────────────────────────
+async function openTxnDetailModal(txnId) {
+  const overlay = document.getElementById('txn-detail-overlay');
+  const body = document.getElementById('txn-modal-body');
+  const titleEl = document.getElementById('txn-modal-title');
+  const idEl = document.getElementById('txn-modal-id');
 
+  overlay.style.display = 'block';
+  body.innerHTML = '<div class="spinner" style="margin:3rem auto;"></div>';
+  titleEl.textContent = 'Transaction Details';
+  idEl.textContent = '';
+
+  try {
+    const res = await fetch(`/api/v2/admin/transactions/${txnId}`, {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (!res.ok) throw new Error('Failed to load transaction details');
+    const result = await res.json();
+    const { transaction: t, media } = result.data;
+
+    const typeBadgeClass = t.txn_type === 'Purchase' ? 'badge-success' : (t.txn_type === 'Sale' ? 'badge-info' : 'badge-warning');
+    const txnDate = new Date(t.txn_date).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const syncedDate = new Date(t.created_at).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+    titleEl.textContent = `${t.txn_type} — ${t.brand} ${t.model}`;
+    idEl.textContent = `ID: ${t.id}`;
+
+    // Category labels
+    const catLabel = {
+      aadhaar_front: '🪪 Aadhaar Front',
+      aadhaar_back:  '🪪 Aadhaar Back',
+      pan:           '💳 PAN Card',
+      invoice:       '🧾 Invoice',
+      customer_photo:'📷 Customer Photo',
+      device_image:  '📱 Device Image',
+      warranty:      '📜 Warranty',
+      bill:          '🧾 Bill',
+      other:         '📄 Document',
+    };
+
+    const isImage = (mime) => mime && mime.startsWith('image/');
+
+    const mediaHtml = media.length === 0
+      ? `<div style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.9rem;">No documents attached to this transaction.</div>`
+      : `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:1rem;">
+          ${media.map(m => {
+            const url = m.firebase_url || m.file_path;
+            const label = catLabel[m.category] || m.category;
+            const sizeKb = m.file_size_bytes ? `${(m.file_size_bytes/1024).toFixed(1)} KB` : '';
+            if (isImage(m.mime_type)) {
+              return `<a href="${url}" target="_blank" style="display:block; border:1px solid var(--border-color); border-radius:10px; overflow:hidden; text-decoration:none;">
+                <img src="${url}" alt="${label}" style="width:100%; height:110px; object-fit:cover; display:block;">
+                <div style="padding:0.5rem 0.6rem; background:var(--bg-secondary);">
+                  <div style="font-size:0.78rem; font-weight:600; color:#fff;">${label}</div>
+                  <div style="font-size:0.7rem; color:var(--text-muted);">${sizeKb}</div>
+                </div>
+              </a>`;
+            } else {
+              return `<a href="${url}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:10px; padding:1rem; text-decoration:none; background:var(--bg-secondary); gap:0.5rem;">
+                <i data-lucide="file-text" style="width:32px;height:32px;color:var(--primary);"></i>
+                <div style="font-size:0.78rem; font-weight:600; color:#fff; text-align:center;">${label}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(m.file_name || '')} ${sizeKb}</div>
+                <span style="font-size:0.72rem; color:var(--primary);">Open →</span>
+              </a>`;
+            }
+          }).join('')}
+        </div>`;
+
+    const fieldRow = (label, value, mono = false) =>
+      `<div style="display:flex; gap:0.5rem; padding:0.55rem 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="min-width:150px; font-size:0.82rem; color:var(--text-muted); font-weight:500;">${label}</div>
+        <div style="font-size:0.85rem; color:#fff; ${mono ? 'font-family:monospace;' : ''} word-break:break-all;">${value || '<span style="color:var(--text-muted);">—</span>'}</div>
+      </div>`;
+
+    const section = (title, icon, content) =>
+      `<div style="margin-bottom:1.5rem;">
+        <h4 style="margin:0 0 0.75rem; font-size:0.9rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="${icon}" style="width:15px;height:15px;"></i> ${title}
+        </h4>
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:0.5rem 1rem;">
+          ${content}
+        </div>
+      </div>`;
+
+    body.innerHTML = `
+      <!-- Summary chips -->
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:center;">
+        <span class="badge ${typeBadgeClass}" style="font-size:0.9rem; padding:0.4rem 0.9rem;">${t.txn_type}</span>
+        <span style="font-size:1.4rem; font-weight:800; color:#fff;">₹${Number(t.amount).toLocaleString('en-IN')}</span>
+        <span class="badge badge-feature">${t.payment_method}</span>
+        ${t.bill_number ? `<span style="font-size:0.8rem; color:var(--text-muted);">Bill #${escapeHtml(t.bill_number)}</span>` : ''}
+      </div>
+
+      ${section('Transaction Info', 'receipt', `
+        ${fieldRow('Date & Time', txnDate)}
+        ${fieldRow('Synced On', syncedDate)}
+        ${fieldRow('Purpose', escapeHtml(t.purpose))}
+        ${fieldRow('Remarks', escapeHtml(t.remarks))}
+        ${fieldRow('Android Txn ID', escapeHtml(t.android_txn_id), true)}
+      `)}
+
+      ${section('Device Details', 'smartphone', `
+        ${fieldRow('Brand & Model', `<strong>${escapeHtml(t.brand)} ${escapeHtml(t.model)}</strong>`)}
+        ${fieldRow('IMEI 1', escapeHtml(t.imei1), true)}
+        ${fieldRow('IMEI 2', escapeHtml(t.imei2) || '—', true)}
+        ${fieldRow('Storage', escapeHtml(t.storage))}
+        ${fieldRow('Color', escapeHtml(t.color))}
+        ${fieldRow('Condition', escapeHtml(t.condition_label))}
+      `)}
+
+      ${section('Customer Details', 'user', `
+        ${fieldRow('Full Name', `<strong>${escapeHtml(t.customer_name)}</strong>`)}
+        ${fieldRow('Mobile', escapeHtml(t.customer_mobile), true)}
+        ${fieldRow('Address', escapeHtml(t.address))}
+        ${fieldRow('District / State', [t.district, t.state].filter(Boolean).map(escapeHtml).join(', '))}
+        ${fieldRow('PIN Code', escapeHtml(t.pin_code), true)}
+        ${fieldRow('Aadhaar', t.aadhaar_number ? '••••' + t.aadhaar_number.slice(-4) : '', true)}
+        ${fieldRow('GSTIN', escapeHtml(t.gstin), true)}
+      `)}
+
+      ${section(`Documents (${media.length})`, 'paperclip', mediaHtml)}
+    `;
+
+    lucide.createIcons();
+
+  } catch (err) {
+    body.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--danger);">⚠️ ${err.message}</div>`;
+    showToast(err.message, 'error');
+  }
+}
+
+function closeTxnDetailModal() {
+  document.getElementById('txn-detail-overlay').style.display = 'none';
+}
+
+// Close on backdrop click
+document.getElementById('txn-detail-overlay')?.addEventListener('click', function(e) {
+  if (e.target === this) closeTxnDetailModal();
+});

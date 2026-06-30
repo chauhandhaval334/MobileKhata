@@ -217,6 +217,55 @@ router.get('/shops/:shopId/transactions', async (req, res) => {
 });
 
 /**
+ * GET /api/v2/admin/transactions/:txnId
+ * Full details for a single transaction — device, customer, media documents.
+ */
+router.get('/transactions/:txnId', async (req, res) => {
+  const { txnId } = req.params;
+  try {
+    const [txnRes, mediaRes] = await Promise.all([
+      query(
+        `SELECT
+          t.id, t.android_txn_id, t.txn_type, t.amount, t.payment_method,
+          t.remarks, t.purpose, t.bill_number, t.txn_date, t.created_at,
+          d.id AS device_id, d.imei1, d.imei2, d.brand, d.model,
+          d.storage, d.color, d.condition_label,
+          c.id AS customer_id, c.full_name AS customer_name,
+          c.mobile AS customer_mobile, c.address, c.state, c.district,
+          c.pin_code, c.aadhaar_number, c.gstin
+         FROM transactions t
+         JOIN devices d   ON d.id = t.device_id
+         JOIN customers c ON c.id = t.customer_id
+         WHERE t.id = $1`,
+        [txnId]
+      ),
+      query(
+        `SELECT id, file_name, firebase_url, file_path, mime_type, file_size_bytes, category, created_at
+         FROM transaction_media
+         WHERE transaction_id = $1
+         ORDER BY created_at ASC`,
+        [txnId]
+      ),
+    ]);
+
+    if (txnRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        transaction: txnRes.rows[0],
+        media: mediaRes.rows,
+      },
+    });
+  } catch (err) {
+    console.error('Admin txn detail error:', err);
+    return res.status(500).json({ error: 'Failed to load transaction details' });
+  }
+});
+
+/**
  * GET /api/v2/admin/diagnostics
  * Health checks, DB latency, storage details and server logs viewer.
  */

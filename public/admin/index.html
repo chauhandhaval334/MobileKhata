@@ -356,11 +356,12 @@
                   <th>Payment</th>
                   <th>Amount</th>
                   <th>Remarks</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody id="transactions-table-body">
                 <tr>
-                  <td colspan="8" class="text-center text-muted py-5">
+                  <td colspan="9" class="text-center text-muted py-5">
                     <i data-lucide="store" class="large-icon mb-2"></i>
                     <p>Select a shop from the dropdown above to load transaction ledger</p>
                   </td>
@@ -373,6 +374,28 @@
           </div>
         </div>
       </section>
+
+      <!-- ─── TRANSACTION DETAIL MODAL ──────────────────────────────────── -->
+      <div id="txn-detail-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:2000; overflow-y:auto; backdrop-filter:blur(4px);">
+        <div style="max-width:760px; margin:2rem auto 4rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:18px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+          
+          <!-- Modal Header -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:1.25rem 1.5rem; border-bottom:1px solid var(--border-color); background:rgba(255,255,255,0.02);">
+            <div>
+              <h2 style="margin:0; font-size:1.1rem; font-weight:700; color:#fff;" id="txn-modal-title">Transaction Details</h2>
+              <p style="margin:0.2rem 0 0; font-size:0.8rem; color:var(--text-muted);" id="txn-modal-id"></p>
+            </div>
+            <button onclick="closeTxnDetailModal()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:#fff; border-radius:10px; padding:0.45rem 0.9rem; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; gap:0.4rem;">
+              <i data-lucide="x" style="width:14px;height:14px;"></i> Close
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div id="txn-modal-body" style="padding:1.5rem;">
+            <div class="spinner" style="margin:3rem auto;"></div>
+          </div>
+        </div>
+      </div>
 
       <!-- ─── TAB: DIAGNOSTICS ───────────────────────────────────────────── -->
       <section id="tab-diagnostics" class="tab-panel">
