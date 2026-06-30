@@ -31,6 +31,7 @@ const feedbackRoutes    = require('./routes/feedbackRoutes');
 const adminFeedbackRoutes = require('./routes/adminFeedbackRoutes');
 const billRoutes        = require('./routes/billRoutes');
 const websiteRoutes     = require('./routes/websiteRoutes');
+const catalogRoutes     = require('./routes/catalogRoutes');
 const { getMaintenanceMode } = require('./utils/maintenanceStore');
 
 const app = express();
@@ -209,6 +210,7 @@ app.use(`${V1}/reports`,       reportRoutes);
 app.use(`${V1}/imei`,          imeiRoutes);
 app.use(`${V1}/admin`,         adminRoutes);
 app.use(`${V1}/website`,       websiteRoutes);
+app.use(`${V1}/catalog`,       catalogRoutes);
 
 // ─── V2 API Routes ─────────────────────────────────────────────────────────────
 app.use(`${V2}/shop`,          shopRoutesV2);
@@ -224,6 +226,7 @@ app.use(`${V2}/bills`,         billRoutes);
 app.use(`${V2}/admin`,         adminRoutesV2);
 app.use(`${V2}/admin/feedback`, adminFeedbackRoutes);
 app.use(`${V2}/website`,       websiteRoutes);
+app.use(`${V2}/catalog`,       catalogRoutes);
 
 // ─── 404 + Error Handlers ──────────────────────────────────────────────────────
 

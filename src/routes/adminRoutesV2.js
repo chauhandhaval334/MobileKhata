@@ -1019,4 +1019,110 @@ router.delete('/offers/:id', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v2/admin/catalog
+ * Get full catalog of brands and models with database IDs.
+ */
+router.get('/catalog', async (req, res) => {
+  try {
+    const brandsRes = await query('SELECT * FROM catalog_brands ORDER BY name ASC');
+    const modelsRes = await query('SELECT * FROM catalog_models ORDER BY name ASC');
+    return success(res, {
+      brands: brandsRes.rows,
+      models: modelsRes.rows
+    });
+  } catch (err) {
+    logger.error('Failed to fetch admin catalog', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v2/admin/catalog/brands
+ * Create a new brand.
+ */
+router.post('/catalog/brands', async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'Brand name is required' });
+  }
+  try {
+    const result = await query(
+      'INSERT INTO catalog_brands (name) VALUES ($1) RETURNING *',
+      [name.trim()]
+    );
+    logger.info('Brand created', { id: result.rows[0].id, name });
+    return success(res, result.rows[0], 'Brand created successfully');
+  } catch (err) {
+    logger.error('Failed to create brand', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/v2/admin/catalog/brands/:id
+ * Delete a brand (will cascade delete models).
+ */
+router.delete('/catalog/brands/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query(
+      'DELETE FROM catalog_brands WHERE id = $1 RETURNING *',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Brand not found' });
+    }
+    logger.info('Brand deleted', { id });
+    return success(res, result.rows[0], 'Brand deleted successfully');
+  } catch (err) {
+    logger.error('Failed to delete brand', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v2/admin/catalog/models
+ * Add a new model under a brand.
+ */
+router.post('/catalog/models', async (req, res) => {
+  const { brandId, name } = req.body;
+  if (!brandId || !name || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'Brand ID and model name are required' });
+  }
+  try {
+    const result = await query(
+      'INSERT INTO catalog_models (brand_id, name) VALUES ($1, $2) RETURNING *',
+      [brandId, name.trim()]
+    );
+    logger.info('Model created', { id: result.rows[0].id, name });
+    return success(res, result.rows[0], 'Model created successfully');
+  } catch (err) {
+    logger.error('Failed to create model', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/v2/admin/catalog/models/:id
+ * Delete a model.
+ */
+router.delete('/catalog/models/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query(
+      'DELETE FROM catalog_models WHERE id = $1 RETURNING *',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Model not found' });
+    }
+    logger.info('Model deleted', { id });
+    return success(res, result.rows[0], 'Model deleted successfully');
+  } catch (err) {
+    logger.error('Failed to delete model', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

@@ -165,6 +165,10 @@
           <i data-lucide="globe"></i>
           <span>Website Content</span>
         </a>
+        <a href="#" class="menu-item" data-tab="catalog">
+          <i data-lucide="smartphone"></i>
+          <span>Device Catalog</span>
+        </a>
       </nav>
 
       <div class="sidebar-user">
@@ -1082,7 +1086,7 @@
   </div>
 
   <!-- ─── TAB: FEEDBACK ──────────────────────────────────────────────────── -->
-  <section id="tab-feedback" class="tab-panel" style="display:none;">
+  <section id="tab-feedback" class="tab-panel">
 
     <!-- Stats Row -->
     <div class="stats-grid" id="fb-stats-grid">
@@ -1221,6 +1225,79 @@
       </div>
     </div>
 
+  </section>
+
+  <!-- ─── TAB: CATALOG ─────────────────────────────────────────────────── -->
+  <section id="tab-catalog" class="tab-panel">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+      
+      <!-- Brands Card -->
+      <div class="card" style="padding: 1.5rem;">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
+          <span>Manage Brands</span>
+        </h3>
+        
+        <!-- Add Brand Form -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <input type="text" id="catalog-new-brand-input" placeholder="e.g. OnePlus, Xiaomi" style="flex: 1; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+          <button class="btn btn-primary" onclick="addCatalogBrand()" style="padding: 0.6rem 1.2rem; border-radius: 8px;">Add Brand</button>
+        </div>
+        
+        <!-- Brands List -->
+        <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
+          <table class="data-table" style="margin: 0; border: none;">
+            <thead>
+              <tr style="background: rgba(255,255,255,0.02);">
+                <th style="padding: 0.6rem 0.75rem;">Brand Name</th>
+                <th style="padding: 0.6rem 0.75rem; text-align: right; width: 80px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="catalog-brands-tbody">
+              <tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Loading brands...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Models Card -->
+      <div class="card" style="padding: 1.5rem;">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="smartphone" style="width: 20px; height: 20px;"></i>
+          <span>Manage Models</span>
+        </h3>
+        
+        <!-- Select Brand to Manage Models -->
+        <div class="input-group" style="margin-bottom: 1rem;">
+          <label for="catalog-model-brand-select" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: block;">Select Brand to manage its models</label>
+          <select id="catalog-model-brand-select" onchange="onCatalogBrandSelect()" style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            <option value="">Choose a brand...</option>
+          </select>
+        </div>
+        
+        <!-- Add Model Form -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <input type="text" id="catalog-new-model-input" placeholder="e.g. OnePlus 11, Redmi Note 12" style="flex: 1; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;" disabled>
+          <button id="catalog-add-model-btn" class="btn btn-primary" onclick="addCatalogModel()" style="padding: 0.6rem 1.2rem; border-radius: 8px;" disabled>Add Model</button>
+        </div>
+        
+        <!-- Models List -->
+        <div style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
+          <table class="data-table" style="margin: 0; border: none;">
+            <thead>
+              <tr style="background: rgba(255,255,255,0.02);">
+                <th style="padding: 0.6rem 0.75rem;">Model Name</th>
+                <th style="padding: 0.6rem 0.75rem; text-align: right; width: 80px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="catalog-models-tbody">
+              <tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Select a brand above to view models</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+    </div>
   </section>
 
   <!-- Chart.js CDN -->

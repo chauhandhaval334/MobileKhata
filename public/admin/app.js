@@ -554,7 +554,8 @@ function switchTab(tab) {
     'premium-users': { title: 'Premium Customers', sub: 'Manage premium users, payment history, and devices' },
     feedback: { title: 'Feedback & Improvement Center', sub: 'Manage user suggestions, bug reports, and responses' },
     config: { title: 'App Configuration', sub: 'Manage global platform configuration synced to mobile apps' },
-    website: { title: 'Website Content', sub: 'Manage public landing page content' }
+    website: { title: 'Website Content', sub: 'Manage public landing page content' },
+    catalog: { title: 'Device Catalog Management', sub: 'Add, modify, or remove brands and models available in the app' }
   };
 
   document.getElementById('page-title').textContent = titles[tab]?.title || 'Admin Portal';
@@ -576,6 +577,8 @@ function switchTab(tab) {
     loadFeedbackList();
   } else if (tab === 'config' || tab === 'website') {
     loadAppConfig();
+  } else if (tab === 'catalog') {
+    fetchCatalogAdmin();
   }
 }
 
@@ -598,6 +601,8 @@ function loadDashboardData() {
     loadFeedbackList();
   } else if (currentTab === 'config' || currentTab === 'website') {
     loadAppConfig();
+  } else if (currentTab === 'catalog') {
+    fetchCatalogAdmin();
   }
 }
 
@@ -2635,6 +2640,230 @@ function getFeedbackPriorityBadge(priority) {
     low: '<span style="color:#22c55e; font-weight:bold;">🟢 Low</span>'
   };
   return map[priority] || priority;
+}
+
+// ─── DEVICE CATALOG MANAGEMENT ───────────────────────────────────────────────
+let catalogData = { brands: [], models: [] };
+
+async function fetchCatalogAdmin() {
+  const brandsTbody = document.getElementById('catalog-brands-tbody');
+  const brandSelect = document.getElementById('catalog-model-brand-select');
+  brandsTbody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding: 1.5rem;"><div class="spinner"></div><p style="margin-top:0.5rem;">Loading catalog...</p></td></tr>`;
+  
+  try {
+    const res = await fetch('/api/v2/admin/catalog', {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    
+    if (res.status === 401 || res.status === 403) {
+      handleUnauthorizedError();
+      return;
+    }
+    
+    if (!res.ok) throw new Error('Failed to fetch catalog');
+    const result = await res.json();
+    catalogData = result.data;
+    
+    // Render Brands
+    renderCatalogBrands();
+    
+    // Populate Brand Select
+    const currentSelectedBrandId = brandSelect.value;
+    brandSelect.innerHTML = '<option value="">Choose a brand...</option>';
+    catalogData.brands.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = b.name;
+      brandSelect.appendChild(opt);
+    });
+    
+    // Restore selection and models list if it still exists
+    if (currentSelectedBrandId && catalogData.brands.some(b => b.id == currentSelectedBrandId)) {
+      brandSelect.value = currentSelectedBrandId;
+      onCatalogBrandSelect();
+    } else {
+      document.getElementById('catalog-new-model-input').disabled = true;
+      document.getElementById('catalog-add-model-btn').disabled = true;
+      document.getElementById('catalog-models-tbody').innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Select a brand above to view models</td></tr>`;
+    }
+    
+  } catch (err) {
+    showToast(err.message, 'error');
+    brandsTbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--danger); padding: 1.5rem;">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function renderCatalogBrands() {
+  const tbody = document.getElementById('catalog-brands-tbody');
+  tbody.innerHTML = '';
+  
+  if (catalogData.brands.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No brands found</td></tr>`;
+    return;
+  }
+  
+  catalogData.brands.forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: #fff;">${escapeHtml(b.name)}</td>
+      <td style="padding: 0.6rem 0.75rem; text-align: right;">
+        <button class="btn" onclick="deleteCatalogBrand(${b.id})" style="padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); cursor: pointer;">
+          Delete
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function onCatalogBrandSelect() {
+  const brandSelect = document.getElementById('catalog-model-brand-select');
+  const brandId = brandSelect.value;
+  const modelInput = document.getElementById('catalog-new-model-input');
+  const modelBtn = document.getElementById('catalog-add-model-btn');
+  const tbody = document.getElementById('catalog-models-tbody');
+  
+  if (!brandId) {
+    modelInput.disabled = true;
+    modelBtn.disabled = true;
+    tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Select a brand above to view models</td></tr>`;
+    return;
+  }
+  
+  modelInput.disabled = false;
+  modelBtn.disabled = false;
+  
+  // Filter models for this brand
+  const filtered = catalogData.models.filter(m => m.brand_id == brandId);
+  tbody.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No models found under this brand</td></tr>`;
+    return;
+  }
+  
+  filtered.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding: 0.6rem 0.75rem; color: #fff;">${escapeHtml(m.name)}</td>
+      <td style="padding: 0.6rem 0.75rem; text-align: right;">
+        <button class="btn" onclick="deleteCatalogModel(${m.id})" style="padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); cursor: pointer;">
+          Delete
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function addCatalogBrand() {
+  const input = document.getElementById('catalog-new-brand-input');
+  const name = input.value.trim();
+  if (!name) return;
+  
+  try {
+    const res = await fetch('/api/v2/admin/catalog/brands', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ name })
+    });
+    
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to add brand');
+    }
+    
+    showToast(`Brand "${name}" added successfully`, 'success');
+    input.value = '';
+    fetchCatalogAdmin();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function deleteCatalogBrand(id) {
+  if (!confirm('Are you sure you want to delete this brand? This will delete ALL models under it too!')) return;
+  
+  try {
+    const res = await fetch(`/api/v2/admin/catalog/brands/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete brand');
+    }
+    
+    showToast('Brand and models deleted successfully', 'success');
+    fetchCatalogAdmin();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function addCatalogModel() {
+  const brandSelect = document.getElementById('catalog-model-brand-select');
+  const brandId = brandSelect.value;
+  const input = document.getElementById('catalog-new-model-input');
+  const name = input.value.trim();
+  
+  if (!brandId || !name) return;
+  
+  try {
+    const res = await fetch('/api/v2/admin/catalog/models', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ brandId, name })
+    });
+    
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to add model');
+    }
+    
+    showToast(`Model "${name}" added successfully`, 'success');
+    input.value = '';
+    fetchCatalogAdmin();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function deleteCatalogModel(id) {
+  if (!confirm('Are you sure you want to delete this model?')) return;
+  
+  try {
+    const res = await fetch(`/api/v2/admin/catalog/models/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete model');
+    }
+    
+    showToast('Model deleted successfully', 'success');
+    fetchCatalogAdmin();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 
