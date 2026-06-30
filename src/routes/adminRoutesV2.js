@@ -38,6 +38,188 @@ router.get('/stats', async (req, res) => {
   });
 });
 
+// GET /api/v2/admin/stats/bills-count
+router.get('/stats/bills-count', async (req, res) => {
+  try {
+    const r = await query(`SELECT COUNT(*) AS total FROM bills`);
+    return success(res, { total: parseInt(r.rows[0].total, 10) });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/v2/admin/stats/premium-count
+router.get('/stats/premium-count', async (req, res) => {
+  try {
+    const r = await query(`SELECT COUNT(*) AS total FROM user_features WHERE premium_expires_at > NOW()`);
+    return success(res, { total: parseInt(r.rows[0].total, 10) });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * GET /api/v2/admin/activity-feed
+ * Live activity feed — transactions + bills + premium activations across all shops.
+ * Query params: limit (default 50), type (all|transaction|bill|premium)
+ */
+router.get('/activity-feed', async (req, res) => {
+
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+  const type = req.query.type || 'all';
+
+  try {
+    const parts = [];
+
+    if (type === 'all' || type === 'transaction') {
+      parts.push(`
+        SELECT
+          t.id,
+          'transaction'            AS activity_type,
+          t.txn_type               AS sub_type,
+          t.txn_date               AS activity_at,
+          s.shop_name,
+          s.owner_name,
+          s.phone_number           AS shop_phone,
+          c.full_name              AS customer_name,
+          c.mobile                 AS customer_mobile,
+          d.brand                  AS device_brand,
+          d.model                  AS device_model,
+          d.imei1,
+          d.storage,
+          t.amount,
+          t.payment_method,
+          NULL::text               AS bill_number,
+          NULL::text               AS plan_id,
+          NULL::integer            AS price_paid
+        FROM transactions t
+        JOIN shops s     ON s.id = t.shop_id
+        JOIN customers c ON c.id = t.customer_id
+        JOIN devices d   ON d.id = t.device_id
+      `);
+    }
+
+    if (type === 'all' || type === 'bill') {
+      parts.push(`
+        SELECT
+          b.id,
+          'bill'                   AS activity_type,
+          b.template_type          AS sub_type,
+          b.created_at             AS activity_at,
+          s.shop_name,
+          s.owner_name,
+          s.phone_number           AS shop_phone,
+          b.customer_name,
+          b.customer_mobile,
+          NULL::text               AS device_brand,
+          NULL::text               AS device_model,
+          NULL::text               AS imei1,
+          NULL::text               AS storage,
+          b.grand_total            AS amount,
+          b.payment_method,
+          b.bill_number,
+          NULL::text               AS plan_id,
+          NULL::integer            AS price_paid
+        FROM bills b
+        JOIN shops s ON s.id = b.shop_id
+      `);
+    }
+
+    if (type === 'all' || type === 'premium') {
+      parts.push(`
+        SELECT
+          a.id,
+          'premium'                AS activity_type,
+          a.plan_id                AS sub_type,
+          a.activated_at           AS activity_at,
+          s.shop_name,
+          s.owner_name,
+          s.phone_number           AS shop_phone,
+          s.owner_name             AS customer_name,
+          s.phone_number           AS customer_mobile,
+          NULL::text               AS device_brand,
+          NULL::text               AS device_model,
+          NULL::text               AS imei1,
+          NULL::text               AS storage,
+          a.price_paid             AS amount,
+          'Premium'                AS payment_method,
+          NULL::text               AS bill_number,
+          a.plan_id,
+          a.price_paid
+        FROM shop_plan_activations a
+        JOIN shops s ON s.id = a.shop_id
+      `);
+    }
+
+    if (parts.length === 0) return res.json({ success: true, data: [] });
+
+    const unionQuery = `
+      SELECT * FROM (${parts.join(' UNION ALL ')}) combined
+      ORDER BY activity_at DESC
+      LIMIT ${limit}
+    `;
+
+    const result = await query(unionQuery);
+    return res.json({ success: true, data: result.rows });
+  } catch (err) {
+    logger.error('Activity feed error:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v2/admin/revenue-dashboard/subscriptions
+ * Individual premium subscription records with shop details — paginated.
+ */
+router.get('/revenue-dashboard/subscriptions', async (req, res) => {
+  const { page = 1, limit = 25, search, planId, from, to } = req.query;
+  const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+  const conditions = [];
+  const params = [];
+  let idx = 1;
+
+  if (search) {
+    conditions.push(`(s.shop_name ILIKE $${idx} OR s.owner_name ILIKE $${idx} OR s.phone_number ILIKE $${idx})`);
+    params.push(`%${search.trim()}%`);
+    idx++;
+  }
+  if (planId) {
+    conditions.push(`a.plan_id = $${idx++}`);
+    params.push(planId);
+  }
+  if (from) {
+    conditions.push(`a.activated_at >= $${idx++}`);
+    params.push(new Date(from).toISOString());
+  }
+  if (to) {
+    conditions.push(`a.activated_at <= $${idx++}`);
+    params.push(new Date(to).toISOString());
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  try {
+    const [rowsRes, countRes] = await Promise.all([
+      query(
+        `SELECT a.id, a.plan_id, a.price_paid, a.activated_at, a.expires_at,
+                s.shop_name, s.owner_name, s.phone_number, s.district
+         FROM shop_plan_activations a
+         JOIN shops s ON s.id = a.shop_id
+         ${where}
+         ORDER BY a.activated_at DESC
+         LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, parseInt(limit, 10), offset]
+      ),
+      query(
+        `SELECT COUNT(*) AS total FROM shop_plan_activations a JOIN shops s ON s.id = a.shop_id ${where}`,
+        params
+      ),
+    ]);
+
+    return paginate(res, rowsRes.rows, parseInt(countRes.rows[0].total, 10), parseInt(page, 10), parseInt(limit, 10));
+  } catch (err) {
+    logger.error('Revenue subscriptions error:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 /**
  * GET /api/v2/admin/shops
  * List all registered shops, with their feature flags merged.

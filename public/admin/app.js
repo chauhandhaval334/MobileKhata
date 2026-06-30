@@ -343,8 +343,18 @@ function setupEventListeners() {
   // Revenue tab controls
   const revFilterBtn = document.getElementById('revenue-filter-btn');
   if (revFilterBtn) {
-    revFilterBtn.addEventListener('click', fetchRevenueDashboard);
+    revFilterBtn.addEventListener('click', () => {
+      fetchRevenueDashboard();
+      fetchSubscriptionsTxns(1);
+    });
   }
+
+  // Activity feed type filter
+  const activityTypeFilter = document.getElementById('activity-type-filter');
+  if (activityTypeFilter) {
+    activityTypeFilter.addEventListener('change', fetchActivityFeed);
+  }
+
   const revExportBtn = document.getElementById('revenue-export-btn');
   if (revExportBtn) {
     revExportBtn.addEventListener('click', async () => {
@@ -561,7 +571,9 @@ function switchTab(tab) {
   document.getElementById('page-title').textContent = titles[tab]?.title || 'Admin Portal';
   document.getElementById('page-subtitle').textContent = titles[tab]?.sub || '';
 
-  if (tab === 'diagnostics') {
+  if (tab === 'overview') {
+    fetchActivityFeed();
+  } else if (tab === 'diagnostics') {
     fetchDiagnostics();
     fetchMaintenanceStatus();
   } else if (tab === 'plans') {
@@ -570,6 +582,7 @@ function switchTab(tab) {
     fetchPlanAnalytics();
   } else if (tab === 'revenue') {
     fetchRevenueDashboard();
+    fetchSubscriptionsTxns(1);
   } else if (tab === 'premium-users') {
     fetchPremiumUsers();
   } else if (tab === 'feedback') {
@@ -594,6 +607,7 @@ function loadDashboardData() {
     fetchPlansAdmin();
   } else if (currentTab === 'revenue') {
     fetchRevenueDashboard();
+    fetchSubscriptionsTxns(1);
   } else if (currentTab === 'premium-users') {
     fetchPremiumUsers();
   } else if (currentTab === 'feedback') {
@@ -612,97 +626,252 @@ async function fetchStats() {
   breakdownList.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading breakdown...</p></div>`;
 
   try {
-    const res = await fetch('/api/v2/admin/stats', {
-      headers: { 'Authorization': `Bearer ${idToken}` }
-    });
+    const [statsRes, billsRes, premiumRes] = await Promise.all([
+      fetch('/api/v2/admin/stats', { headers: { 'Authorization': `Bearer ${idToken}` } }),
+      fetch('/api/v2/admin/stats/bills-count', { headers: { 'Authorization': `Bearer ${idToken}` } }),
+      fetch('/api/v2/admin/stats/premium-count', { headers: { 'Authorization': `Bearer ${idToken}` } }),
+    ]);
 
-    if (res.status === 401 || res.status === 403) {
-      handleUnauthorizedError();
-      return;
-    }
+    if (statsRes.status === 401 || statsRes.status === 403) { handleUnauthorizedError(); return; }
+    if (!statsRes.ok) throw new Error('Failed to fetch statistics');
 
-    if (!res.ok) throw new Error('Failed to fetch statistics');
-
-    const data = await res.json();
+    const data = await statsRes.json();
     const stats = data.data;
 
-    // Render Stats Cards
     document.getElementById('stat-shops').textContent = stats.totalShops || 0;
     document.getElementById('stat-customers').textContent = stats.totalCustomers || 0;
     document.getElementById('stat-stock').textContent = stats.totalStock || 0;
 
-    let totalTxns = 0;
-    let purchaseTotal = 0;
-    let purchaseCount = 0;
-    let saleTotal = 0;
-    let saleCount = 0;
-    let repairCount = 0;
+    // Bills stat
+    if (billsRes.ok) {
+      const bd = await billsRes.json();
+      const billEl = document.getElementById('stat-bills');
+      if (billEl) billEl.textContent = bd.data?.total || 0;
+    }
+    // Premium stat
+    if (premiumRes.ok) {
+      const pd = await premiumRes.json();
+      const premEl = document.getElementById('stat-premium');
+      if (premEl) premEl.textContent = pd.data?.total || 0;
+    }
+
+    let totalTxns = 0, purchaseTotal = 0, purchaseCount = 0, saleTotal = 0, saleCount = 0, repairCount = 0;
 
     stats.transactions.forEach(t => {
       const count = parseInt(t.count, 10);
       totalTxns += count;
-
-      if (t.txn_type === 'Purchase') {
-        purchaseCount = count;
-        purchaseTotal = parseInt(t.total_amount, 10);
-      } else if (t.txn_type === 'Sale') {
-        saleCount = count;
-        saleTotal = parseInt(t.total_amount, 10);
-      } else if (t.txn_type === 'Repair') {
-        repairCount = count;
-      }
+      if (t.txn_type === 'Purchase') { purchaseCount = count; purchaseTotal = parseInt(t.total_amount, 10); }
+      else if (t.txn_type === 'Sale') { saleCount = count; saleTotal = parseInt(t.total_amount, 10); }
+      else if (t.txn_type === 'Repair') { repairCount = count; }
     });
 
     document.getElementById('stat-transactions').textContent = totalTxns;
 
-    // Render Breakdown
     breakdownList.innerHTML = `
       <div class="breakdown-item">
         <div class="breakdown-info">
-          <div class="breakdown-icon green">
-            <i data-lucide="arrow-down-left"></i>
-          </div>
-          <div>
-            <div class="breakdown-name">Purchase Entries</div>
-            <div class="breakdown-count">${purchaseCount} devices bought</div>
-          </div>
+          <div class="breakdown-icon green"><i data-lucide="arrow-down-left"></i></div>
+          <div><div class="breakdown-name">Purchase Entries</div><div class="breakdown-count">${purchaseCount} devices bought</div></div>
         </div>
         <div class="breakdown-amount">₹${purchaseTotal.toLocaleString('en-IN')}</div>
       </div>
-
       <div class="breakdown-item">
         <div class="breakdown-info">
-          <div class="breakdown-icon orange">
-            <i data-lucide="arrow-up-right"></i>
-          </div>
-          <div>
-            <div class="breakdown-name">Sale Entries</div>
-            <div class="breakdown-count">${saleCount} devices sold</div>
-          </div>
+          <div class="breakdown-icon orange"><i data-lucide="arrow-up-right"></i></div>
+          <div><div class="breakdown-name">Sale Entries</div><div class="breakdown-count">${saleCount} devices sold</div></div>
         </div>
         <div class="breakdown-amount">₹${saleTotal.toLocaleString('en-IN')}</div>
       </div>
-
       <div class="breakdown-item">
         <div class="breakdown-info">
-          <div class="breakdown-icon red">
-            <i data-lucide="wrench"></i>
-          </div>
-          <div>
-            <div class="breakdown-name">Repair Entries</div>
-            <div class="breakdown-count">${repairCount} repair logs</div>
-          </div>
+          <div class="breakdown-icon red"><i data-lucide="wrench"></i></div>
+          <div><div class="breakdown-name">Repair Entries</div><div class="breakdown-count">${repairCount} repair logs</div></div>
         </div>
         <div class="breakdown-amount">-</div>
       </div>
     `;
     lucide.createIcons();
 
+    // Kick off activity feed on overview tab
+    fetchActivityFeed();
+
   } catch (err) {
     showToast(err.message, 'error');
     breakdownList.innerHTML = `<p class="text-center text-muted py-3">Error loading stats</p>`;
   }
 }
+
+// ─── ACTIVITY FEED ────────────────────────────────────────────────────────
+let activityAutoRefreshInterval = null;
+let activityAutoRefreshOn = true;
+
+async function fetchActivityFeed() {
+  const tbody = document.getElementById('activity-feed-body');
+  if (!tbody) return;
+
+  const typeFilter = document.getElementById('activity-type-filter')?.value || 'all';
+  const url = `/api/v2/admin/activity-feed?limit=100&type=${typeFilter}`;
+
+  try {
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${idToken}` } });
+    if (!res.ok) throw new Error('Activity feed failed');
+    const result = await res.json();
+    const items = result.data;
+
+    if (!items || items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-5">No activity yet</td></tr>`;
+      return;
+    }
+
+    const activityBadge = (item) => {
+      if (item.activity_type === 'premium') {
+        return `<span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);">⭐ Premium</span>`;
+      } else if (item.activity_type === 'bill') {
+        const billColor = item.sub_type === 'GST' ? '#3b82f6' : (item.sub_type === 'Estimate' ? '#f97316' : '#22c55e');
+        return `<span class="badge" style="background:${billColor}22;color:${billColor};border:1px solid ${billColor}44;">🧾 Bill · ${escapeHtml(item.sub_type || '')}</span>`;
+      } else {
+        const isP = item.sub_type === 'Purchase'; const isR = item.sub_type === 'Repair';
+        const col = isP ? '#22c55e' : (isR ? '#f97316' : '#60a5fa');
+        const icon = isP ? '📥' : (isR ? '🔧' : '📤');
+        return `<span class="badge" style="background:${col}22;color:${col};border:1px solid ${col}44;">${icon} ${escapeHtml(item.sub_type || '')}</span>`;
+      }
+    };
+
+    tbody.innerHTML = items.map(item => {
+      const t = new Date(item.activity_at);
+      const dateStr = t.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+      const timeStr = t.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+      let details = '';
+      if (item.activity_type === 'transaction') {
+        details = `<div style="font-weight:600;">${escapeHtml(item.customer_name || '')}</div><div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(item.device_brand || '')} ${escapeHtml(item.device_model || '')} · ${escapeHtml(item.imei1 || '')}</div>`;
+      } else if (item.activity_type === 'bill') {
+        details = `<div style="font-weight:600;">${escapeHtml(item.customer_name || '')}</div><div style="font-size:0.75rem;color:var(--text-muted);">Bill #${escapeHtml(item.bill_number || '')}</div>`;
+      } else {
+        details = `<div style="font-weight:600;">${escapeHtml(item.shop_name || '')}</div><div style="font-size:0.75rem;color:var(--text-muted);">Plan: ${escapeHtml(item.plan_id || 'Custom')}</div>`;
+      }
+
+      const amount = item.amount != null ? `₹${Number(item.amount).toLocaleString('en-IN')}` : '—';
+
+      return `<tr>
+        <td><code style="font-size:0.78rem;">${dateStr}<br><span style="color:var(--text-muted);">${timeStr}</span></code></td>
+        <td>${activityBadge(item)}</td>
+        <td><strong>${escapeHtml(item.shop_name || '')}</strong></td>
+        <td style="color:var(--text-muted);font-size:0.82rem;">${escapeHtml(item.owner_name || '')}</td>
+        <td>${details}</td>
+        <td><strong style="color:#60a5fa;">${amount}</strong></td>
+        <td><span class="badge badge-feature" style="font-size:0.75rem;">${escapeHtml(item.payment_method || '—')}</span></td>
+      </tr>`;
+    }).join('');
+
+    lucide.createIcons();
+  } catch (err) {
+    console.warn('Activity feed error:', err.message);
+  }
+}
+
+function toggleActivityAutoRefresh() {
+  const btn = document.getElementById('activity-refresh-toggle');
+  const dot = document.getElementById('activity-live-dot');
+  activityAutoRefreshOn = !activityAutoRefreshOn;
+
+  if (activityAutoRefreshOn) {
+    btn.style.color = '#22c55e';
+    btn.innerHTML = `<i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Auto-refresh: ON`;
+    dot.style.animationPlayState = 'running';
+    startActivityAutoRefresh();
+  } else {
+    btn.style.color = 'var(--text-muted)';
+    btn.innerHTML = `<i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Auto-refresh: OFF`;
+    dot.style.animationPlayState = 'paused';
+    clearInterval(activityAutoRefreshInterval);
+  }
+  lucide.createIcons();
+}
+
+function startActivityAutoRefresh() {
+  clearInterval(activityAutoRefreshInterval);
+  activityAutoRefreshInterval = setInterval(() => {
+    if (currentTab === 'overview') fetchActivityFeed();
+  }, 30000); // every 30 seconds
+}
+
+// Start auto-refresh when page loads
+startActivityAutoRefresh();
+
+// ─── SUBSCRIPTION TRANSACTIONS TABLE ─────────────────────────────────────
+let currentSubTxnPage = 1;
+
+async function fetchSubscriptionsTxns(page = 1) {
+  currentSubTxnPage = page;
+  const tbody = document.getElementById('sub-txns-table-body');
+  const pagination = document.getElementById('sub-txns-pagination');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="spinner" style="margin:auto;"></div></td></tr>`;
+
+  const search = document.getElementById('sub-search')?.value.trim() || '';
+  const planId = document.getElementById('sub-plan-filter')?.value || '';
+  const from = document.getElementById('revenue-from')?.value || '';
+  const to = document.getElementById('revenue-to')?.value || '';
+
+  let url = `/api/v2/admin/revenue-dashboard/subscriptions?page=${page}&limit=25`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (planId) url += `&planId=${encodeURIComponent(planId)}`;
+  if (from) url += `&from=${from}`;
+  if (to) url += `&to=${to}`;
+
+  try {
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${idToken}` } });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) throw new Error('Failed to load subscriptions');
+
+    const result = await res.json();
+    const subs = result.data;
+    const meta = result.meta || {};
+
+    const dateFmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+    const planLabel = (id) => id === 'plan_6m' ? '6 Months' : (id === 'plan_1y' ? '1 Year' : (id || 'Custom'));
+    const planColor = (id) => id === 'plan_1y' ? '#a855f7' : (id === 'plan_6m' ? '#3b82f6' : '#f97316');
+
+    if (!subs || subs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5">No subscription records found</td></tr>`;
+      if (pagination) pagination.innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = subs.map(s => {
+      const now = new Date();
+      const expires = new Date(s.expires_at);
+      const isExpired = expires < now;
+      const pc = planColor(s.plan_id);
+      return `<tr>
+        <td><code style="font-size:0.78rem;">${dateFmt(s.activated_at)}</code></td>
+        <td><strong>${escapeHtml(s.shop_name || '')}</strong></td>
+        <td style="color:var(--text-muted);">${escapeHtml(s.owner_name || '')}</td>
+        <td><code>${escapeHtml(s.phone_number || '')}</code></td>
+        <td style="color:var(--text-muted);font-size:0.82rem;">${escapeHtml(s.district || '—')}</td>
+        <td><span class="badge" style="background:${pc}22;color:${pc};border:1px solid ${pc}44;">${planLabel(s.plan_id)}</span></td>
+        <td><strong style="color:#22c55e;">₹${Number(s.price_paid).toLocaleString('en-IN')}</strong></td>
+        <td><code style="font-size:0.78rem; color:${isExpired ? '#ef4444' : '#22c55e'};">${dateFmt(s.expires_at)}</code></td>
+      </tr>`;
+    }).join('');
+
+    const totalPages = meta.totalPages || 1;
+    if (pagination) {
+      pagination.innerHTML = `
+        <div class="page-info">Page ${page} of ${totalPages} (${meta.total || 0} records)</div>
+        <div class="page-buttons">
+          <button class="btn-page" ${page === 1 ? 'disabled' : ''} onclick="fetchSubscriptionsTxns(${page - 1})">Prev</button>
+          <button class="btn-page" ${page === totalPages ? 'disabled' : ''} onclick="fetchSubscriptionsTxns(${page + 1})">Next</button>
+        </div>`;
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Error loading subscriptions</td></tr>`;
+  }
+}
+window.fetchSubscriptionsTxns = fetchSubscriptionsTxns;
 
 // ─── API: FETCH SHOPS LIST ────────────────────────────────────────────────
 async function fetchShops() {
