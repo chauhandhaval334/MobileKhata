@@ -185,10 +185,16 @@
           <h1 id="page-title">Dashboard Overview</h1>
           <p id="page-subtitle">Platform-wide activity and aggregated metrics</p>
         </div>
-        <button id="refresh-btn" class="btn btn-secondary flex-center" title="Refresh Data">
-          <i data-lucide="refresh-cw"></i>
-          <span>Refresh</span>
-        </button>
+        <div class="flex-center" style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="send-broadcast-btn" class="btn btn-primary flex-center" title="Send Push Notification" style="padding: 0.5rem 1rem; border-radius: 8px; height: 38px; font-weight: 500;">
+            <i data-lucide="send" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+            <span>Send Notification</span>
+          </button>
+          <button id="refresh-btn" class="btn btn-secondary flex-center" title="Refresh Data" style="height: 38px;">
+            <i data-lucide="refresh-cw"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
       </header>
 
       <!-- ─── TAB: OVERVIEW ────────────────────────────────────────────────── -->
