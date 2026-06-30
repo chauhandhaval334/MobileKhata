@@ -248,6 +248,48 @@ function setupEventListeners() {
     });
   }
 
+  // Synchronize Free Days Limit and Free Trial Expiry Date
+  const freeDaysLimitInput = document.getElementById('free-days-limit');
+  const freeTrialExpiryDateInput = document.getElementById('free-trial-expiry-date');
+  
+  if (freeDaysLimitInput && freeTrialExpiryDateInput) {
+    freeDaysLimitInput.addEventListener('input', (e) => {
+      const days = parseInt(e.target.value, 10);
+      if (isNaN(days) || days < 1) return;
+      
+      const shopId = document.getElementById('modal-shop-id').value;
+      const shop = activeShops.find(s => s.id === shopId);
+      if (!shop || !shop.created_at) return;
+      
+      const createdDate = new Date(shop.created_at);
+      const expDate = new Date(createdDate.getTime());
+      expDate.setDate(expDate.getDate() + days);
+      const yyyy = expDate.getFullYear();
+      const mm = String(expDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(expDate.getDate()).padStart(2, '0');
+      freeTrialExpiryDateInput.value = `${yyyy}-${mm}-${dd}`;
+    });
+    
+    freeTrialExpiryDateInput.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      
+      const shopId = document.getElementById('modal-shop-id').value;
+      const shop = activeShops.find(s => s.id === shopId);
+      if (!shop || !shop.created_at) return;
+      
+      const selectedDate = new Date(val);
+      const createdDate = new Date(shop.created_at);
+      // Reset hours to midnight for accurate day calculation
+      selectedDate.setHours(0, 0, 0, 0);
+      createdDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = selectedDate.getTime() - createdDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      freeDaysLimitInput.value = diffDays > 0 ? diffDays : 1;
+    });
+  }
+
   // Plan actions & triggers
   const addPlanBtn = document.getElementById('add-plan-btn');
   if (addPlanBtn) addPlanBtn.addEventListener('click', () => openAddPlanModal());
@@ -1044,7 +1086,21 @@ window.openFeaturesModal = async function(shopId) {
   // Set limits
   document.getElementById('limit-entries').value = shop.freeEntriesLimit || 10;
   document.getElementById('used-entries').value = shop.freeEntriesUsed || 0;
-  document.getElementById('free-days-limit').value = shop.freeDaysLimit || 30;
+  const freeDays = shop.freeDaysLimit || 30;
+  document.getElementById('free-days-limit').value = freeDays;
+
+  // Calculate and set Free Trial Expiration Date picker
+  if (shop.created_at) {
+    const createdDate = new Date(shop.created_at);
+    const expDate = new Date(createdDate.getTime());
+    expDate.setDate(expDate.getDate() + freeDays);
+    const yyyy = expDate.getFullYear();
+    const mm = String(expDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(expDate.getDate()).padStart(2, '0');
+    document.getElementById('free-trial-expiry-date').value = `${yyyy}-${mm}-${dd}`;
+  } else {
+    document.getElementById('free-trial-expiry-date').value = '';
+  }
 
   // Display Modal
   document.getElementById('features-modal').classList.add('active');
