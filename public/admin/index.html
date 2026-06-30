@@ -746,17 +746,232 @@
                 <label for="config-website-about-text">About Us Text</label>
                 <textarea id="config-website-about-text" rows="5" placeholder="MobileKhata was built to solve..."></textarea>
               </div>
-              <div class="mt-4">
-                <button type="submit" class="btn btn-primary" id="save-website-btn">
-                  <span>Save Website Content</span>
-                  <i data-lucide="save"></i>
-                </button>
-              </div>
-            </form>
+              <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+              <button type="submit" class="btn btn-primary" id="save-website-btn">
+                <span>Save Website Content</span>
+                <i data-lucide="save"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TAB: FEEDBACK ──────────────────────────────────────────────────── -->
+    <section id="tab-feedback" class="tab-panel">
+
+      <!-- Stats Row -->
+      <div class="stats-grid" id="fb-stats-grid">
+        <div class="stats-card"><div class="card-icon blue"><i data-lucide="inbox"></i></div><div class="card-value" id="fb-stat-total">-</div><div class="card-label">Total Tickets</div></div>
+        <div class="stats-card"><div class="card-icon orange"><i data-lucide="circle"></i></div><div class="card-value" id="fb-stat-open">-</div><div class="card-label">Open</div></div>
+        <div class="stats-card"><div class="card-icon purple"><i data-lucide="eye"></i></div><div class="card-value" id="fb-stat-review">-</div><div class="card-label">Under Review</div></div>
+        <div class="stats-card"><div class="card-icon yellow"><i data-lucide="loader"></i></div><div class="card-value" id="fb-stat-progress">-</div><div class="card-label">In Progress</div></div>
+        <div class="stats-card"><div class="card-icon green"><i data-lucide="check-circle"></i></div><div class="card-value" id="fb-stat-resolved">-</div><div class="card-label">Resolved</div></div>
+        <div class="stats-card"><div class="card-icon gray"><i data-lucide="archive"></i></div><div class="card-value" id="fb-stat-closed">-</div><div class="card-label">Closed</div></div>
+        <div class="stats-card"><div class="card-icon red"><i data-lucide="calendar"></i></div><div class="card-value" id="fb-stat-today">-</div><div class="card-label">Today</div></div>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="card" style="margin-bottom:1rem; padding:1rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center;">
+          <input type="text" id="fb-search" placeholder="🔍 Search ticket, shop, phone..." style="flex:1; min-width:200px; padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <select id="fb-filter-status" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+            <option value="">All Status</option>
+            <option value="open">Open</option>
+            <option value="under_review">Under Review</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+          <select id="fb-filter-type" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+            <option value="">All Types</option>
+            <option value="bug_report">Bug Report</option>
+            <option value="feature_request">Feature Request</option>
+            <option value="improvement">Improvement</option>
+            <option value="ui_ux">UI / UX</option>
+            <option value="performance">Performance</option>
+            <option value="payment_issue">Payment Issue</option>
+            <option value="premium_issue">Premium Issue</option>
+            <option value="report_issue">Report Issue</option>
+            <option value="sync_issue">Sync Issue</option>
+            <option value="other">Other</option>
+          </select>
+          <select id="fb-filter-priority" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+            <option value="">All Priority</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+          <select id="fb-filter-sub" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+            <option value="">All Plans</option>
+            <option value="premium">Premium Users</option>
+            <option value="free">Free Users</option>
+          </select>
+          <input type="date" id="fb-filter-from" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <input type="date" id="fb-filter-to" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+          <button class="btn btn-primary" onclick="loadFeedbackList()" style="padding:0.55rem 1rem; border-radius:8px; height:38px;">
+            <i data-lucide="filter" style="width:16px;height:16px;"></i> Apply
+          </button>
+          <button class="btn btn-secondary" onclick="exportFeedback('csv')" style="padding:0.55rem 1rem; border-radius:8px; height:38px;">
+            <i data-lucide="download" style="width:16px;height:16px;"></i> CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Tickets Table -->
+      <div class="card" style="overflow-x:auto;">
+        <table class="data-table" id="fb-table">
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Shop / Phone</th>
+              <th>Type</th>
+              <th>Subject</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="fb-table-body">
+            <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading feedback...</td></tr>
+          </tbody>
+        </table>
+        <!-- Pagination -->
+        <div id="fb-pagination" style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; color:var(--text-secondary); font-size:0.85rem;">
+          <span id="fb-page-info">Page 1</span>
+          <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" id="fb-prev-btn" onclick="feedbackPageChange(-1)" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem;">← Prev</button>
+            <button class="btn btn-secondary" id="fb-next-btn" onclick="feedbackPageChange(1)" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem;">Next →</button>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+
+      <!-- Ticket Detail Modal -->
+      <div id="fb-detail-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; overflow-y:auto;">
+        <div style="max-width:760px; margin:2rem auto; background:var(--bg-primary); border-radius:16px; padding:1.5rem; position:relative;">
+          <button onclick="closeFeedbackModal()" style="position:absolute; top:1rem; right:1rem; background:var(--bg-secondary); border:none; color:#fff; border-radius:8px; padding:0.4rem 0.8rem; cursor:pointer;">✕ Close</button>
+
+          <div id="fb-detail-content">Loading...</div>
+
+          <!-- Admin Actions -->
+          <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+            <select id="fb-action-status" style="padding:0.5rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+              <option value="">Change Status...</option>
+              <option value="open">Open</option>
+              <option value="under_review">Under Review</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">✅ Resolved</option>
+              <option value="closed">🔒 Closed</option>
+            </select>
+            <button class="btn btn-primary" onclick="applyFeedbackStatus()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem;">Apply Status</button>
+            <select id="fb-action-priority" style="padding:0.5rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
+              <option value="">Set Priority...</option>
+              <option value="critical">🔴 Critical</option>
+              <option value="high">🟠 High</option>
+              <option value="medium">🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+            </select>
+            <button class="btn btn-secondary" onclick="applyFeedbackPriority()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem;">Set Priority</button>
+            <button class="btn btn-danger" onclick="deleteFeedbackTicket()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem; background:#ef4444; border:none; color:#fff; cursor:pointer;">🗑 Delete</button>
+          </div>
+
+          <!-- Reply Box -->
+          <div style="margin-top:1rem;">
+            <label style="font-size:0.85rem; color:var(--text-secondary); font-weight:600;">Reply to User</label>
+            <textarea id="fb-reply-text" rows="3" placeholder="Type your reply here..." style="width:100%; margin-top:0.5rem; padding:0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; resize:vertical; font-family:inherit;"></textarea>
+            <button class="btn btn-primary" onclick="sendFeedbackReply()" style="margin-top:0.5rem; padding:0.5rem 1.2rem; border-radius:8px;">
+              <i data-lucide="send" style="width:14px;height:14px;"></i> Send Reply
+            </button>
+          </div>
+
+          <!-- Internal Note -->
+          <div style="margin-top:1rem;">
+            <label style="font-size:0.85rem; color:var(--text-secondary); font-weight:600;">Internal Note (Not visible to user)</label>
+            <textarea id="fb-note-text" rows="2" placeholder="Add internal note..." style="width:100%; margin-top:0.5rem; padding:0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; resize:vertical; font-family:inherit;"></textarea>
+            <button class="btn btn-secondary" onclick="addFeedbackNote()" style="margin-top:0.5rem; padding:0.5rem 1.2rem; border-radius:8px;">
+              <i data-lucide="sticky-note" style="width:14px;height:14px;"></i> Save Note
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─── TAB: CATALOG ─────────────────────────────────────────────────── -->
+    <section id="tab-catalog" class="tab-panel">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+        
+        <!-- Brands Card -->
+        <div class="card" style="padding: 1.5rem;">
+          <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
+            <span>Manage Brands</span>
+          </h3>
+          
+          <!-- Add Brand Form -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="text" id="catalog-new-brand-input" placeholder="e.g. OnePlus, Xiaomi" style="flex: 1; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+            <button class="btn btn-primary" onclick="addCatalogBrand()" style="padding: 0.6rem 1.2rem; border-radius: 8px;">Add Brand</button>
+          </div>
+          
+          <!-- Brands List -->
+          <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
+            <table class="data-table" style="margin: 0; border: none;">
+              <thead>
+                <tr style="background: rgba(255,255,255,0.02);">
+                  <th style="padding: 0.6rem 0.75rem;">Brand Name</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: right; width: 80px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-brands-tbody">
+                <tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Loading brands...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Models Card -->
+        <div class="card" style="padding: 1.5rem;">
+          <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="smartphone" style="width: 20px; height: 20px;"></i>
+            <span>Manage Models</span>
+          </h3>
+          
+          <!-- Select Brand to Manage Models -->
+          <div class="input-group" style="margin-bottom: 1rem;">
+            <label for="catalog-model-brand-select" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: block;">Select Brand to manage its models</label>
+            <select id="catalog-model-brand-select" onchange="onCatalogBrandSelect()" style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+              <option value="">Choose a brand...</option>
+            </select>
+          </div>
+          
+          <!-- Add Model Form -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="text" id="catalog-new-model-input" placeholder="e.g. OnePlus 11, Redmi Note 12" style="flex: 1; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;" disabled>
+            <button id="catalog-add-model-btn" class="btn btn-primary" onclick="addCatalogModel()" style="padding: 0.6rem 1.2rem; border-radius: 8px;" disabled>Add Model</button>
+          </div>
+          
+          <!-- Models List -->
+          <div style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
+            <table class="data-table" style="margin: 0; border: none;">
+              <thead>
+                <tr style="background: rgba(255,255,255,0.02);">
+                  <th style="padding: 0.6rem 0.75rem;">Model Name</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: right; width: 80px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-models-tbody">
+                <tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Select a brand above to view models</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+      </div>
+    </section>
+  </main>
   </div>
 
   <!-- ─── MODAL: ADD/EDIT PREMIUM PLAN ───────────────────────────────────── -->
@@ -1084,221 +1299,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ─── TAB: FEEDBACK ──────────────────────────────────────────────────── -->
-  <section id="tab-feedback" class="tab-panel">
-
-    <!-- Stats Row -->
-    <div class="stats-grid" id="fb-stats-grid">
-      <div class="stats-card"><div class="card-icon blue"><i data-lucide="inbox"></i></div><div class="card-value" id="fb-stat-total">-</div><div class="card-label">Total Tickets</div></div>
-      <div class="stats-card"><div class="card-icon orange"><i data-lucide="circle"></i></div><div class="card-value" id="fb-stat-open">-</div><div class="card-label">Open</div></div>
-      <div class="stats-card"><div class="card-icon purple"><i data-lucide="eye"></i></div><div class="card-value" id="fb-stat-review">-</div><div class="card-label">Under Review</div></div>
-      <div class="stats-card"><div class="card-icon yellow"><i data-lucide="loader"></i></div><div class="card-value" id="fb-stat-progress">-</div><div class="card-label">In Progress</div></div>
-      <div class="stats-card"><div class="card-icon green"><i data-lucide="check-circle"></i></div><div class="card-value" id="fb-stat-resolved">-</div><div class="card-label">Resolved</div></div>
-      <div class="stats-card"><div class="card-icon gray"><i data-lucide="archive"></i></div><div class="card-value" id="fb-stat-closed">-</div><div class="card-label">Closed</div></div>
-      <div class="stats-card"><div class="card-icon red"><i data-lucide="calendar"></i></div><div class="card-value" id="fb-stat-today">-</div><div class="card-label">Today</div></div>
-    </div>
-
-    <!-- Filters Bar -->
-    <div class="card" style="margin-bottom:1rem; padding:1rem;">
-      <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center;">
-        <input type="text" id="fb-search" placeholder="🔍 Search ticket, shop, phone..." style="flex:1; min-width:200px; padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-        <select id="fb-filter-status" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-          <option value="">All Status</option>
-          <option value="open">Open</option>
-          <option value="under_review">Under Review</option>
-          <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select id="fb-filter-type" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-          <option value="">All Types</option>
-          <option value="bug_report">Bug Report</option>
-          <option value="feature_request">Feature Request</option>
-          <option value="improvement">Improvement</option>
-          <option value="ui_ux">UI / UX</option>
-          <option value="performance">Performance</option>
-          <option value="payment_issue">Payment Issue</option>
-          <option value="premium_issue">Premium Issue</option>
-          <option value="report_issue">Report Issue</option>
-          <option value="sync_issue">Sync Issue</option>
-          <option value="other">Other</option>
-        </select>
-        <select id="fb-filter-priority" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-          <option value="">All Priority</option>
-          <option value="critical">🔴 Critical</option>
-          <option value="high">🟠 High</option>
-          <option value="medium">🟡 Medium</option>
-          <option value="low">🟢 Low</option>
-        </select>
-        <select id="fb-filter-sub" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-          <option value="">All Plans</option>
-          <option value="premium">Premium Users</option>
-          <option value="free">Free Users</option>
-        </select>
-        <input type="date" id="fb-filter-from" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-        <input type="date" id="fb-filter-to" style="padding:0.55rem 0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-        <button class="btn btn-primary" onclick="loadFeedbackList()" style="padding:0.55rem 1rem; border-radius:8px; height:38px;">
-          <i data-lucide="filter" style="width:16px;height:16px;"></i> Apply
-        </button>
-        <button class="btn btn-secondary" onclick="exportFeedback('csv')" style="padding:0.55rem 1rem; border-radius:8px; height:38px;">
-          <i data-lucide="download" style="width:16px;height:16px;"></i> CSV
-        </button>
-      </div>
-    </div>
-
-    <!-- Tickets Table -->
-    <div class="card" style="overflow-x:auto;">
-      <table class="data-table" id="fb-table">
-        <thead>
-          <tr>
-            <th>Ticket ID</th>
-            <th>Shop / Phone</th>
-            <th>Type</th>
-            <th>Subject</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Submitted</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="fb-table-body">
-          <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading feedback...</td></tr>
-        </tbody>
-      </table>
-      <!-- Pagination -->
-      <div id="fb-pagination" style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; color:var(--text-secondary); font-size:0.85rem;">
-        <span id="fb-page-info">Page 1</span>
-        <div style="display:flex; gap:0.5rem;">
-          <button class="btn btn-secondary" id="fb-prev-btn" onclick="feedbackPageChange(-1)" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem;">← Prev</button>
-          <button class="btn btn-secondary" id="fb-next-btn" onclick="feedbackPageChange(1)" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem;">Next →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Ticket Detail Modal -->
-    <div id="fb-detail-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; overflow-y:auto;">
-      <div style="max-width:760px; margin:2rem auto; background:var(--bg-primary); border-radius:16px; padding:1.5rem; position:relative;">
-        <button onclick="closeFeedbackModal()" style="position:absolute; top:1rem; right:1rem; background:var(--bg-secondary); border:none; color:#fff; border-radius:8px; padding:0.4rem 0.8rem; cursor:pointer;">✕ Close</button>
-
-        <div id="fb-detail-content">Loading...</div>
-
-        <!-- Admin Actions -->
-        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color);">
-          <select id="fb-action-status" style="padding:0.5rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-            <option value="">Change Status...</option>
-            <option value="open">Open</option>
-            <option value="under_review">Under Review</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">✅ Resolved</option>
-            <option value="closed">🔒 Closed</option>
-          </select>
-          <button class="btn btn-primary" onclick="applyFeedbackStatus()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem;">Apply Status</button>
-          <select id="fb-action-priority" style="padding:0.5rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">
-            <option value="">Set Priority...</option>
-            <option value="critical">🔴 Critical</option>
-            <option value="high">🟠 High</option>
-            <option value="medium">🟡 Medium</option>
-            <option value="low">🟢 Low</option>
-          </select>
-          <button class="btn btn-secondary" onclick="applyFeedbackPriority()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem;">Set Priority</button>
-          <button class="btn btn-danger" onclick="deleteFeedbackTicket()" style="padding:0.5rem 1rem; border-radius:8px; font-size:0.85rem; background:#ef4444; border:none; color:#fff; cursor:pointer;">🗑 Delete</button>
-        </div>
-
-        <!-- Reply Box -->
-        <div style="margin-top:1rem;">
-          <label style="font-size:0.85rem; color:var(--text-secondary); font-weight:600;">Reply to User</label>
-          <textarea id="fb-reply-text" rows="3" placeholder="Type your reply here..." style="width:100%; margin-top:0.5rem; padding:0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; resize:vertical; font-family:inherit;"></textarea>
-          <button class="btn btn-primary" onclick="sendFeedbackReply()" style="margin-top:0.5rem; padding:0.5rem 1.2rem; border-radius:8px;">
-            <i data-lucide="send" style="width:14px;height:14px;"></i> Send Reply
-          </button>
-        </div>
-
-        <!-- Internal Note -->
-        <div style="margin-top:1rem;">
-          <label style="font-size:0.85rem; color:var(--text-secondary); font-weight:600;">Internal Note (Not visible to user)</label>
-          <textarea id="fb-note-text" rows="2" placeholder="Add internal note..." style="width:100%; margin-top:0.5rem; padding:0.75rem; border-radius:8px; background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff; resize:vertical; font-family:inherit;"></textarea>
-          <button class="btn btn-secondary" onclick="addFeedbackNote()" style="margin-top:0.5rem; padding:0.5rem 1.2rem; border-radius:8px;">
-            <i data-lucide="sticky-note" style="width:14px;height:14px;"></i> Save Note
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </section>
-
-  <!-- ─── TAB: CATALOG ─────────────────────────────────────────────────── -->
-  <section id="tab-catalog" class="tab-panel">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
-      
-      <!-- Brands Card -->
-      <div class="card" style="padding: 1.5rem;">
-        <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-          <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
-          <span>Manage Brands</span>
-        </h3>
-        
-        <!-- Add Brand Form -->
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          <input type="text" id="catalog-new-brand-input" placeholder="e.g. OnePlus, Xiaomi" style="flex: 1; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
-          <button class="btn btn-primary" onclick="addCatalogBrand()" style="padding: 0.6rem 1.2rem; border-radius: 8px;">Add Brand</button>
-        </div>
-        
-        <!-- Brands List -->
-        <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
-          <table class="data-table" style="margin: 0; border: none;">
-            <thead>
-              <tr style="background: rgba(255,255,255,0.02);">
-                <th style="padding: 0.6rem 0.75rem;">Brand Name</th>
-                <th style="padding: 0.6rem 0.75rem; text-align: right; width: 80px;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="catalog-brands-tbody">
-              <tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Loading brands...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      <!-- Models Card -->
-      <div class="card" style="padding: 1.5rem;">
-        <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-          <i data-lucide="smartphone" style="width: 20px; height: 20px;"></i>
-          <span>Manage Models</span>
-        </h3>
-        
-        <!-- Select Brand to Manage Models -->
-        <div class="input-group" style="margin-bottom: 1rem;">
-          <label for="catalog-model-brand-select" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: block;">Select Brand to manage its models</label>
-          <select id="catalog-model-brand-select" onchange="onCatalogBrandSelect()" style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
-            <option value="">Choose a brand...</option>
-          </select>
-        </div>
-        
-        <!-- Add Model Form -->
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          <input type="text" id="catalog-new-model-input" placeholder="e.g. OnePlus 11, Redmi Note 12" style="flex: 1; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;" disabled>
-          <button id="catalog-add-model-btn" class="btn btn-primary" onclick="addCatalogModel()" style="padding: 0.6rem 1.2rem; border-radius: 8px;" disabled>Add Model</button>
-        </div>
-        
-        <!-- Models List -->
-        <div style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
-          <table class="data-table" style="margin: 0; border: none;">
-            <thead>
-              <tr style="background: rgba(255,255,255,0.02);">
-                <th style="padding: 0.6rem 0.75rem;">Model Name</th>
-                <th style="padding: 0.6rem 0.75rem; text-align: right; width: 80px;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="catalog-models-tbody">
-              <tr><td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Select a brand above to view models</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-    </div>
-  </section>
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
