@@ -219,6 +219,42 @@ router.get('/revenue-dashboard/subscriptions', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/v2/admin/revenue-dashboard/subscriptions/:id
+ * Delete a premium subscription activation record (to clean up test data).
+ */
+router.delete('/revenue-dashboard/subscriptions/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query('DELETE FROM shop_plan_activations WHERE id = $1 RETURNING shop_id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Subscription record not found' });
+    }
+    
+    const shopId = result.rows[0].shop_id;
+    
+    // Find next latest activation expires date for shop
+    const latestRes = await query(
+      `SELECT expires_at FROM shop_plan_activations 
+       WHERE shop_id = $1 
+       ORDER BY expires_at DESC LIMIT 1`,
+      [shopId]
+    );
+    
+    const newExpiry = latestRes.rows.length > 0 ? latestRes.rows[0].expires_at : null;
+    await query(
+      `UPDATE user_features SET premium_expires_at = $1 WHERE shop_id = $2`,
+      [newExpiry, shopId]
+    );
+    
+    logger.info('Deleted premium subscription activation record', { id, shopId, newExpiry });
+    return success(res, null, 'Subscription record deleted successfully');
+  } catch (err) {
+    logger.error('Failed to delete premium subscription record:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 /**
  * GET /api/v2/admin/shops
@@ -984,7 +1020,7 @@ router.get('/premium-users', async (req, res) => {
   const { page = 1, limit = 50, search, planId, status } = req.query;
   const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
-  let conditions = ['uf.premium_expires_at IS NOT NULL'];
+  let conditions = [`(uf.premium_expires_at IS NOT NULL OR EXISTS(SELECT 1 FROM shop_plan_activations spa WHERE spa.shop_id = s.id))`];
   const params = [];
   let idx = 1;
 
@@ -1003,6 +1039,8 @@ router.get('/premium-users', async (req, res) => {
     conditions.push(`uf.premium_expires_at > NOW()`);
   } else if (status === 'expired') {
     conditions.push(`uf.premium_expires_at <= NOW()`);
+  } else if (status === 'cancelled') {
+    conditions.push(`uf.premium_expires_at IS NULL`);
   } else if (status === 'expiring_soon') {
     conditions.push(`uf.premium_expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days'`);
   }
@@ -1011,7 +1049,7 @@ router.get('/premium-users', async (req, res) => {
 
   try {
     // 1. Dashboard summary stats
-    const totalRes = await query(`SELECT COUNT(*) AS total FROM user_features WHERE premium_expires_at IS NOT NULL`);
+    const totalRes = await query(`SELECT COUNT(DISTINCT shop_id) AS total FROM user_features uf WHERE uf.premium_expires_at IS NOT NULL OR EXISTS(SELECT 1 FROM shop_plan_activations spa WHERE spa.shop_id = uf.shop_id)`);
     const activeRes = await query(`SELECT COUNT(*) AS total FROM user_features WHERE premium_expires_at > NOW()`);
     const expiredRes = await query(`SELECT COUNT(*) AS total FROM user_features WHERE premium_expires_at <= NOW()`);
     const expiringRes = await query(`SELECT COUNT(*) AS total FROM user_features WHERE premium_expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days'`);
@@ -1034,7 +1072,7 @@ router.get('/premium-users', async (req, res) => {
       FROM shops s
       JOIN user_features uf ON uf.shop_id = s.id
       WHERE ${where}
-      ORDER BY uf.premium_expires_at DESC
+      ORDER BY COALESCE(uf.premium_expires_at, s.created_at) DESC
       LIMIT $${idx} OFFSET $${idx + 1}
     `, [...params, parseInt(limit, 10), offset]);
 

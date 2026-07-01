@@ -996,6 +996,11 @@ async function fetchSubscriptionsTxns(page = 1) {
         <td><span class="badge" style="background:${pc}22;color:${pc};border:1px solid ${pc}44;">${planLabel(s.plan_id)}</span></td>
         <td><strong style="color:#22c55e;">₹${Number(s.price_paid).toLocaleString('en-IN')}</strong></td>
         <td><code style="font-size:0.78rem; color:${isExpired ? '#ef4444' : '#22c55e'};">${dateFmt(s.expires_at)}</code></td>
+        <td>
+          <button class="btn-action btn-delete" onclick="handleDeleteSubscription('${s.id}')" title="Delete Transaction Record" style="color: var(--danger); padding:0.35rem 0.60rem; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+            <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+          </button>
+        </td>
       </tr>`;
     }).join('');
 
@@ -2304,10 +2309,19 @@ async function fetchPremiumUsers() {
       const lastActiveStr = user.lastActive ? new Date(user.lastActive).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
       
       let daysLeftClass = 'badge-success';
-      if (user.remainingDays <= 0) {
+      let daysLeftText = '';
+      if (!user.premiumExpiresAt) {
+        daysLeftClass = 'badge-muted';
+        daysLeftText = 'Cancelled';
+      } else if (user.remainingDays <= 0) {
         daysLeftClass = 'badge-danger';
+        daysLeftText = 'Expired';
       } else if (user.remainingDays <= 7) {
         daysLeftClass = 'badge-warning';
+        daysLeftText = `${user.remainingDays} Days Left`;
+      } else {
+        daysLeftClass = 'badge-success';
+        daysLeftText = `${user.remainingDays} Days Left`;
       }
 
       return `
@@ -2317,7 +2331,7 @@ async function fetchPremiumUsers() {
           <td><code>${escapeHtml(user.phoneNumber)}</code></td>
           <td><span class="badge badge-info">${planName}</span></td>
           <td><code>${expiryStr}</code></td>
-          <td><span class="badge ${daysLeftClass}">${user.remainingDays <= 0 ? 'Expired' : user.remainingDays + ' Days Left'}</span></td>
+          <td><span class="badge ${daysLeftClass}">${daysLeftText}</span></td>
           <td><code style="font-size:0.8rem">${escapeHtml(user.deviceId || 'No device ID')}</code></td>
           <td><small>${lastActiveStr}</small></td>
           <td>
@@ -3411,3 +3425,35 @@ async function fetchDeviceLogins(multipleOnly = false) {
     tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Error loading login history: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
+
+// ─── API: DELETE SUBSCRIPTION RECORD ──────────────────────────────────────
+window.handleDeleteSubscription = async function(subId) {
+  if (!confirm('Are you sure you want to delete this subscription activation record? This will subtract it from revenue and update the shop\'s premium expiry date.')) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/v2/admin/revenue-dashboard/subscriptions/${subId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${idToken}`
+      }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      handleUnauthorizedError();
+      return;
+    }
+
+    if (!res.ok) throw new Error('Failed to delete subscription record');
+
+    showToast('Subscription record deleted successfully!', 'success');
+    
+    // Refresh dashboard calculations and current lists
+    fetchRevenueDashboard();
+    fetchSubscriptionsTxns(currentSubTxnPage);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
