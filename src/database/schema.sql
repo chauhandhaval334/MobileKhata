@@ -609,3 +609,26 @@ CREATE TRIGGER trg_bills_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 
+-- ────────────────────────────────────────────────────────────
+-- TABLE: shop_devices
+-- Tracks all unique devices a shop has logged in from
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS shop_devices (
+    id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shop_id        UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+    device_id      TEXT NOT NULL,
+    device_name    TEXT NOT NULL DEFAULT '',
+    os_version     TEXT NOT NULL DEFAULT '',
+    app_version    TEXT NOT NULL DEFAULT '',
+    login_count    INTEGER NOT NULL DEFAULT 1,
+    last_login_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    UNIQUE (shop_id, device_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_devices_shop_id ON shop_devices(shop_id);
+CREATE INDEX IF NOT EXISTS idx_shop_devices_device_id ON shop_devices(device_id);
+
+
+

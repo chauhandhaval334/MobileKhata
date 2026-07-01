@@ -280,6 +280,62 @@ router.get('/shops', async (req, res) => {
 });
 
 /**
+ * GET /api/v2/admin/shops/multiple-devices
+ * List all shops that have logged into more than one unique device.
+ */
+router.get('/shops/multiple-devices', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        s.id AS shop_id,
+        s.shop_name,
+        s.owner_name,
+        s.phone_number,
+        COUNT(sd.device_id) AS unique_devices_count,
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'device_id', sd.device_id,
+            'device_name', sd.device_name,
+            'os_version', sd.os_version,
+            'app_version', sd.app_version,
+            'login_count', sd.login_count,
+            'last_login_at', sd.last_login_at
+          ) ORDER BY sd.last_login_at DESC
+        ) AS devices
+      FROM shops s
+      JOIN shop_devices sd ON sd.shop_id = s.id
+      WHERE s.is_active = TRUE
+      GROUP BY s.id, s.shop_name, s.owner_name, s.phone_number
+      HAVING COUNT(sd.device_id) > 1
+      ORDER BY unique_devices_count DESC
+    `);
+    
+    return success(res, result.rows);
+  } catch (err) {
+    logger.error('Failed to query shops with multiple devices:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v2/admin/shops/:shopId/devices
+ * List all login devices recorded for a specific shop.
+ */
+router.get('/shops/:shopId/devices', async (req, res) => {
+  const { shopId } = req.params;
+  try {
+    const result = await query(
+      `SELECT * FROM shop_devices WHERE shop_id = $1 ORDER BY last_login_at DESC`,
+      [shopId]
+    );
+    return success(res, result.rows);
+  } catch (err) {
+    logger.error('Failed to query devices for shop:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/v2/admin/shops/:shopId/features
  * Set feature flags for a specific shop.
  */

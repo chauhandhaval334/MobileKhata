@@ -96,7 +96,7 @@ router.post(
   ],
   validate,
   async (req, res) => {
-    const { deviceId } = req.body;
+    const { deviceId, deviceName, osVersion, appVersion } = req.body;
     const firebaseUid = req.user.uid;
     const { query } = require('../config/database');
     const { success } = require('../utils/response');
@@ -111,7 +111,21 @@ router.post(
       
       const shopId = shopRes.rows[0].id;
       await query('UPDATE shops SET active_device_id = $1, updated_at = NOW() WHERE id = $2', [deviceId, shopId]);
-      logger.info('Updated active device ID for shop', { shopId, deviceId });
+      
+      // Upsert device details in shop_devices history table
+      await query(
+        `INSERT INTO shop_devices (shop_id, device_id, device_name, os_version, app_version, last_login_at, login_count)
+         VALUES ($1, $2, $3, $4, $5, NOW(), 1)
+         ON CONFLICT (shop_id, device_id) DO UPDATE SET
+           device_name   = EXCLUDED.device_name,
+           os_version    = EXCLUDED.os_version,
+           app_version   = EXCLUDED.app_version,
+           last_login_at = NOW(),
+           login_count   = shop_devices.login_count + 1`,
+        [shopId, deviceId, deviceName || 'Unknown Device', osVersion || '', appVersion || '']
+      );
+
+      logger.info('Updated active device ID and logged shop login device', { shopId, deviceId });
       return success(res, null, 'Active device registered successfully');
     } catch (err) {
       logger.error('Failed to update active device ID', { error: err.message });
