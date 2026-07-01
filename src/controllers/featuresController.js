@@ -228,4 +228,22 @@ const getPlans = async (req, res) => {
   }
 };
 
-module.exports = { getFeatures, setFeatures, listAllFeatures, getPlans };
+/**
+ * GET /api/v2/shop/how-to-use-videos
+ * Returns the list of tutorial and how-to-use videos.
+ */
+const getHowToUseVideos = async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, title, description, duration, video_url AS "videoUrl"
+       FROM how_to_use_videos
+       ORDER BY id ASC`
+    );
+    return success(res, result.rows);
+  } catch (err) {
+    logger.error('Failed to query how-to-use videos', { error: err.message });
+    return res.status(500).json({ success: false, error: 'Database query failed' });
+  }
+};
+
+module.exports = { getFeatures, setFeatures, listAllFeatures, getPlans, getHowToUseVideos };

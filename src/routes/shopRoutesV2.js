@@ -5,7 +5,7 @@ const { body } = require('express-validator');
 const { verifyFirebaseToken, requireShopV2 } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { setupShop, getProfile, getStats, getSubscriptionHistory } = require('../controllers/shopController');
-const { getFeatures, getPlans } = require('../controllers/featuresController');
+const { getFeatures, getPlans, getHowToUseVideos } = require('../controllers/featuresController');
 
 const router = Router();
 
@@ -62,6 +62,12 @@ router.get('/features', requireShopV2, getFeatures);
  * Premium plan list + support WhatsApp number.
  */
 router.get('/plans', getPlans);
+
+/**
+ * GET /api/v2/shop/how-to-use-videos
+ * Get list of how-to-use videos.
+ */
+router.get('/how-to-use-videos', requireShopV2, getHowToUseVideos);
 
 /**
  * POST /api/v2/shop/fcm-token
