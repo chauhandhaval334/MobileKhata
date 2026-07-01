@@ -279,11 +279,9 @@ router.get('/shops', async (req, res) => {
   return paginate(res, rowsRes.rows, parseInt(countRes.rows[0].total, 10), parseInt(page, 10), parseInt(limit, 10));
 });
 
-/**
- * GET /api/v2/admin/shops/multiple-devices
- * List all shops that have logged into more than one unique device.
- */
 router.get('/shops/multiple-devices', async (req, res) => {
+  const multipleOnly = req.query.multipleOnly !== 'false';
+  const minCount = multipleOnly ? 2 : 1;
   try {
     const result = await query(`
       SELECT 
@@ -306,9 +304,9 @@ router.get('/shops/multiple-devices', async (req, res) => {
       JOIN shop_devices sd ON sd.shop_id = s.id
       WHERE s.is_active = TRUE
       GROUP BY s.id, s.shop_name, s.owner_name, s.phone_number
-      HAVING COUNT(sd.device_id) > 1
+      HAVING COUNT(sd.device_id) >= $1
       ORDER BY unique_devices_count DESC
-    `);
+    `, [minCount]);
     
     return success(res, result.rows);
   } catch (err) {

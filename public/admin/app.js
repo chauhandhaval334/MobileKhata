@@ -458,6 +458,31 @@ function setupEventListeners() {
       fetchShops();
     });
   });
+
+  // Device Logins Controls
+  const deviceLoginsRefresh = document.getElementById('device-logins-refresh-btn');
+  if (deviceLoginsRefresh) {
+    deviceLoginsRefresh.addEventListener('click', () => {
+      const isMultipleOnly = document.getElementById('btn-show-multiple-only').style.display === 'none';
+      fetchDeviceLogins(isMultipleOnly);
+    });
+  }
+
+  const btnShowMultipleOnly = document.getElementById('btn-show-multiple-only');
+  const btnShowAllDevices = document.getElementById('btn-show-all-devices');
+
+  if (btnShowMultipleOnly && btnShowAllDevices) {
+    btnShowMultipleOnly.addEventListener('click', () => {
+      btnShowMultipleOnly.style.display = 'none';
+      btnShowAllDevices.style.display = 'flex';
+      fetchDeviceLogins(true);
+    });
+    btnShowAllDevices.addEventListener('click', () => {
+      btnShowAllDevices.style.display = 'none';
+      btnShowMultipleOnly.style.display = 'flex';
+      fetchDeviceLogins(false);
+    });
+  }
 }
 
 function updateSortIndicators() {
@@ -562,6 +587,7 @@ function switchTab(tab) {
     'plan-analytics': { title: 'Subscription Plan Analytics', sub: 'Filter and view premium registrations, revenue, and popular packages' },
     revenue: { title: 'Revenue Dashboard', sub: 'Monitor platform revenue, plans breakdown, and trends' },
     'premium-users': { title: 'Premium Customers', sub: 'Manage premium users, payment history, and devices' },
+    'device-logins': { title: 'Device Login History & Analytics', sub: 'Monitor devices, models, and operating systems used by shops to prevent account abuse' },
     feedback: { title: 'Feedback & Improvement Center', sub: 'Manage user suggestions, bug reports, and responses' },
     config: { title: 'App Configuration', sub: 'Manage global platform configuration synced to mobile apps' },
     website: { title: 'Website Content', sub: 'Manage public landing page content' },
@@ -585,6 +611,8 @@ function switchTab(tab) {
     fetchSubscriptionsTxns(1);
   } else if (tab === 'premium-users') {
     fetchPremiumUsers();
+  } else if (tab === 'device-logins') {
+    fetchDeviceLogins(false);
   } else if (tab === 'feedback') {
     loadFeedbackStats();
     loadFeedbackList();
@@ -610,6 +638,9 @@ function loadDashboardData() {
     fetchSubscriptionsTxns(1);
   } else if (currentTab === 'premium-users') {
     fetchPremiumUsers();
+  } else if (currentTab === 'device-logins') {
+    const isMultipleOnly = document.getElementById('btn-show-multiple-only').style.display === 'none';
+    fetchDeviceLogins(isMultipleOnly);
   } else if (currentTab === 'feedback') {
     loadFeedbackStats();
     loadFeedbackList();
@@ -3292,3 +3323,91 @@ function closeTxnDetailModal() {
 document.getElementById('txn-detail-overlay')?.addEventListener('click', function(e) {
   if (e.target === this) closeTxnDetailModal();
 });
+
+// ─── API: FETCH DEVICE LOGINS ──────────────────────────────────────────────
+async function fetchDeviceLogins(multipleOnly = false) {
+  const tableBody = document.getElementById('device-logins-table-body');
+  if (!tableBody) return;
+
+  tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner" style="margin:auto;"></div></td></tr>`;
+
+  try {
+    const res = await fetch(`/api/v2/admin/shops/multiple-devices?multipleOnly=${multipleOnly}`, {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      handleUnauthorizedError();
+      return;
+    }
+
+    if (!res.ok) throw new Error('Failed to fetch device login history');
+
+    const result = await res.json();
+    const shopsList = result.data || [];
+
+    if (shopsList.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted py-5">
+            <i data-lucide="smartphone" class="large-icon mb-2" style="width:48px;height:48px;margin:auto;"></i>
+            <p style="margin-top:0.5rem;">No ${multipleOnly ? 'shops with multiple login' : 'login'} devices found.</p>
+          </td>
+        </tr>
+      `;
+      lucide.createIcons();
+      return;
+    }
+
+    tableBody.innerHTML = shopsList.map(s => {
+      const devices = s.devices || [];
+      const devicesHtml = devices.map(d => {
+        const lastLogin = d.last_login_at ? new Date(d.last_login_at).toLocaleString('en-IN') : '—';
+        return `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:600; color:#fff; font-size:0.85rem;">${escapeHtml(d.device_name || 'Unknown Device')}</span>
+              <span class="badge badge-feature" style="font-size:0.72rem;">Logins: ${d.login_count || 1}</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); display:flex; gap:0.75rem;">
+              <span>OS: ${escapeHtml(d.os_version || '—')}</span>
+              <span>App: v${escapeHtml(d.app_version || '—')}</span>
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">
+              Last Login: <span style="color:#fff;">${lastLogin}</span>
+            </div>
+            <div style="font-size:0.68rem; color:var(--text-muted); font-family:monospace; word-break:break-all;">
+              ID: ${escapeHtml(d.device_id || '')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const countBadgeColor = s.unique_devices_count > 1 ? 'badge-danger' : 'badge-success';
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(s.shop_name)}</strong></td>
+          <td>${escapeHtml(s.owner_name || '—')}</td>
+          <td><code>${escapeHtml(s.phone_number || '—')}</code></td>
+          <td>
+            <span class="badge ${countBadgeColor}" style="font-size:0.85rem; padding:0.35rem 0.6rem;">
+              ${s.unique_devices_count || 1} Device(s)
+            </span>
+          </td>
+          <td style="max-width: 450px;">
+            <div style="max-height: 250px; overflow-y: auto; padding-right: 0.25rem;">
+              ${devicesHtml}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    lucide.createIcons();
+
+  } catch (err) {
+    showToast(err.message, 'error');
+    tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Error loading login history: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}

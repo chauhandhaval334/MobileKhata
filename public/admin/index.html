@@ -153,6 +153,10 @@
           <i data-lucide="users"></i>
           <span>Premium Customers</span>
         </a>
+        <a href="#" class="menu-item" data-tab="device-logins">
+          <i data-lucide="monitor-smartphone"></i>
+          <span>Device Logins</span>
+        </a>
         <a href="#" class="menu-item" data-tab="feedback">
           <i data-lucide="message-square"></i>
           <span>Feedback Center</span>
@@ -795,6 +799,48 @@
               </thead>
               <tbody id="premium-users-table-body">
                 <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+      </section>
+
+      <!-- ─── TAB: DEVICE LOGINS ─────────────────────────────────────────── -->
+      <section id="tab-device-logins" class="tab-panel">
+        <div class="card-controls flex-between mb-4" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 1.25rem 1.5rem; border-radius: 16px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 600; color: #fff;">Device Login History & Analytics</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem;">Track which shops are logged in on which physical devices. Detect potential account sharing across multiple devices.</p>
+          </div>
+          <div class="flex-center" style="display: flex; align-items: center; gap: 1rem;">
+            <button class="btn btn-secondary flex-center" id="btn-show-multiple-only" style="padding: 0.5rem 1rem; border-radius: 8px; height: 38px; font-weight: 500;">
+              <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i>
+              <span>Show Multiple Devices Only</span>
+            </button>
+            <button class="btn btn-secondary flex-center" id="btn-show-all-devices" style="padding: 0.5rem 1rem; border-radius: 8px; height: 38px; font-weight: 500; display: none;">
+              <i data-lucide="list" style="width: 16px; height: 16px;"></i>
+              <span>Show All Logins</span>
+            </button>
+            <button class="btn btn-primary flex-center" id="device-logins-refresh-btn" style="padding: 0.5rem 1.2rem; border-radius: 8px; height: 38px;">
+              <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="data-card">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Shop Name</th>
+                  <th>Owner Name</th>
+                  <th>Mobile Number</th>
+                  <th>Unique Devices Count</th>
+                  <th>Device Details (History)</th>
+                </tr>
+              </thead>
+              <tbody id="device-logins-table-body">
+                <tr><td colspan="5" class="text-center py-5"><div class="spinner" style="margin:auto;"></div></td></tr>
               </tbody>
             </table>
           </div>
