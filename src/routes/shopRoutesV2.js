@@ -4,7 +4,7 @@ const { Router } = require('express');
 const { body } = require('express-validator');
 const { verifyFirebaseToken, requireShopV2 } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
-const { setupShop, getProfile, getStats } = require('../controllers/shopController');
+const { setupShop, getProfile, getStats, getSubscriptionHistory } = require('../controllers/shopController');
 const { getFeatures, getPlans } = require('../controllers/featuresController');
 
 const router = Router();
@@ -44,6 +44,12 @@ router.get('/profile', requireShopV2, getProfile);
  * Dashboard stats — total sales, purchases, stock, customers.
  */
 router.get('/stats', requireShopV2, getStats);
+
+/**
+ * GET /api/v2/shop/subscription-history
+ * Get subscription history for shop.
+ */
+router.get('/subscription-history', requireShopV2, getSubscriptionHistory);
 
 /**
  * GET /api/v2/shop/features

@@ -95,10 +95,36 @@ const getStats = async (req, res) => {
   });
 };
 
+const getSubscriptionHistory = async (req, res) => {
+  const shopId = req.shop.id;
+  try {
+    const result = await query(
+      `SELECT 
+         spa.id,
+         spa.plan_id AS "planId",
+         spa.price_paid AS "pricePaid",
+         spa.activated_at AS "activatedAt",
+         spa.expires_at AS "expiresAt",
+         p.name AS "planName",
+         p.currency,
+         p.price
+       FROM shop_plan_activations spa
+       LEFT JOIN premium_plans p ON p.id = spa.plan_id
+       WHERE spa.shop_id = $1
+       ORDER BY spa.activated_at DESC`,
+      [shopId]
+    );
+    return success(res, result.rows);
+  } catch (err) {
+    logger.error('Failed to get subscription history:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // Strip sensitive internal fields before sending to client
 const sanitizeShop = (shop) => {
   const { ...safe } = shop;
   return safe;
 };
 
-module.exports = { setupShop, getProfile, getStats };
+module.exports = { setupShop, getProfile, getStats, getSubscriptionHistory };
