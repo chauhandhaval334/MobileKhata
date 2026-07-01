@@ -1502,6 +1502,9 @@ async function handleSaveFeatures(e) {
     
     // Refresh tables
     fetchShops();
+    if (currentTab === 'premium-users') {
+      fetchPremiumUsers();
+    }
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -2293,6 +2296,8 @@ async function fetchPremiumUsers() {
     const data = result.data;
     const users = data.users;
 
+    activeShops = users; // Store globally for openFeaturesModal binding
+
     // Set summary counters
     document.getElementById('prem-total-count').textContent = data.stats.totalPremium;
     document.getElementById('prem-active-count').textContent = data.stats.active;
@@ -2337,9 +2342,14 @@ async function fetchPremiumUsers() {
           <td><code style="font-size:0.8rem">${escapeHtml(user.deviceId || 'No device ID')}</code></td>
           <td><small>${lastActiveStr}</small></td>
           <td>
-            <button class="btn-action" onclick="openPremiumUserModal('${user.id}')" title="Audit / Send Notification">
-              <i data-lucide="eye"></i>
-            </button>
+            <div class="actions-cell">
+              <button class="btn-action" onclick="openFeaturesModal('${user.id}')" title="Modify Permissions / Cancel Premium" style="color: var(--primary); margin-right: 5px;">
+                <i data-lucide="sliders"></i>
+              </button>
+              <button class="btn-action" onclick="openPremiumUserModal('${user.id}')" title="Audit / Send Notification">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
