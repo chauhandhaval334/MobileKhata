@@ -1004,6 +1004,8 @@ async function fetchSubscriptionsTxns(page = 1) {
       </tr>`;
     }).join('');
 
+    lucide.createIcons();
+
     const totalPages = meta.totalPages || 1;
     if (pagination) {
       pagination.innerHTML = `
@@ -2310,10 +2312,10 @@ async function fetchPremiumUsers() {
       
       let daysLeftClass = 'badge-success';
       let daysLeftText = '';
-      if (!user.premiumExpiresAt) {
+      if (user.status === 'cancelled') {
         daysLeftClass = 'badge-muted';
         daysLeftText = 'Cancelled';
-      } else if (user.remainingDays <= 0) {
+      } else if (user.status === 'expired') {
         daysLeftClass = 'badge-danger';
         daysLeftText = 'Expired';
       } else if (user.remainingDays <= 7) {

@@ -1020,7 +1020,7 @@ router.get('/premium-users', async (req, res) => {
   const { page = 1, limit = 50, search, planId, status } = req.query;
   const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
-  let conditions = [`(uf.premium_expires_at IS NOT NULL OR EXISTS(SELECT 1 FROM shop_plan_activations spa WHERE spa.shop_id = s.id))`];
+  let conditions = ['1=1'];
   const params = [];
   let idx = 1;
 
@@ -1031,18 +1031,18 @@ router.get('/premium-users', async (req, res) => {
   }
 
   if (planId) {
-    conditions.push(`EXISTS(SELECT 1 FROM shop_plan_activations a WHERE a.shop_id = s.id AND a.plan_id = $${idx++} ORDER BY a.activated_at DESC LIMIT 1)`);
+    conditions.push(`spa.plan_id = $${idx++}`);
     params.push(planId);
   }
 
   if (status === 'active') {
-    conditions.push(`uf.premium_expires_at > NOW()`);
+    conditions.push(`uf.premium_expires_at IS NOT NULL AND spa.expires_at > NOW()`);
   } else if (status === 'expired') {
-    conditions.push(`uf.premium_expires_at <= NOW()`);
+    conditions.push(`uf.premium_expires_at IS NOT NULL AND spa.expires_at <= NOW()`);
   } else if (status === 'cancelled') {
     conditions.push(`uf.premium_expires_at IS NULL`);
   } else if (status === 'expiring_soon') {
-    conditions.push(`uf.premium_expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days'`);
+    conditions.push(`uf.premium_expires_at IS NOT NULL AND spa.expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days'`);
   }
 
   const where = conditions.join(' AND ');
@@ -1063,21 +1063,37 @@ router.get('/premium-users', async (req, res) => {
 
     // 2. Fetch records
     const records = await query(`
-      SELECT s.id, s.shop_name AS "shopName", s.owner_name AS "ownerName", s.phone_number AS "phoneNumber",
-             s.active_device_id AS "deviceId", s.updated_at AS "lastActive",
-             uf.premium_expires_at AS "premiumExpiresAt",
-             CEIL(EXTRACT(EPOCH FROM (uf.premium_expires_at - NOW()))/86400)::integer AS "remainingDays",
-             (SELECT a.plan_id FROM shop_plan_activations a WHERE a.shop_id = s.id ORDER BY a.activated_at DESC LIMIT 1) AS "currentPlan",
-             (SELECT a.activated_at FROM shop_plan_activations a WHERE a.shop_id = s.id ORDER BY a.activated_at DESC LIMIT 1) AS "activatedAt"
-      FROM shops s
+      SELECT 
+        spa.id AS "activationId",
+        s.id AS "id",
+        s.shop_name AS "shopName",
+        s.owner_name AS "ownerName",
+        s.phone_number AS "phoneNumber",
+        s.active_device_id AS "deviceId",
+        s.updated_at AS "lastActive",
+        spa.plan_id AS "currentPlan",
+        spa.activated_at AS "activatedAt",
+        spa.expires_at AS "premiumExpiresAt",
+        CEIL(EXTRACT(EPOCH FROM (spa.expires_at - NOW()))/86400)::integer AS "remainingDays",
+        CASE
+          WHEN uf.premium_expires_at IS NULL THEN 'cancelled'
+          WHEN spa.expires_at <= NOW() THEN 'expired'
+          ELSE 'active'
+        END AS "status"
+      FROM shop_plan_activations spa
+      JOIN shops s ON s.id = spa.shop_id
       JOIN user_features uf ON uf.shop_id = s.id
       WHERE ${where}
-      ORDER BY COALESCE(uf.premium_expires_at, s.created_at) DESC
+      ORDER BY spa.activated_at DESC
       LIMIT $${idx} OFFSET $${idx + 1}
     `, [...params, parseInt(limit, 10), offset]);
 
     const countRes = await query(`
-      SELECT COUNT(*) AS total FROM shops s JOIN user_features uf ON uf.shop_id = s.id WHERE ${where}
+      SELECT COUNT(*) AS total 
+      FROM shop_plan_activations spa
+      JOIN shops s ON s.id = spa.shop_id
+      JOIN user_features uf ON uf.shop_id = s.id
+      WHERE ${where}
     `, params);
 
     return success(res, {
