@@ -888,6 +888,36 @@
             </form>
           </div>
         </div>
+
+        <!-- How to Use Videos Card -->
+        <div class="data-card mt-4" style="margin-top: 2rem;">
+          <div class="card-header border-bottom flex-between" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem;">
+            <div>
+              <h3>How to Use Videos (App Tutorial Guides)</h3>
+              <p>Add and manage tutorial video guides displayed on the mobile app's 'How to Use' screen.</p>
+            </div>
+            <button class="btn btn-primary flex-center" onclick="openVideoModal()" style="padding: 0.5rem 1rem; border-radius: 8px;">
+              <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+              <span>Add Video Link</span>
+            </button>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Description</th>
+                  <th>Duration</th>
+                  <th>Video Link (URL)</th>
+                  <th style="text-align: right; width: 120px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="how-to-use-table-body">
+                <tr><td colspan="5" class="text-center py-4" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Loading videos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- ─── TAB: WEBSITE CONTENT ───────────────────────────────────────── -->
@@ -1465,6 +1495,52 @@
           </form>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: ADD/EDIT HOW TO USE VIDEO ──────────────────────────────── -->
+  <div id="video-modal" class="modal-wrapper">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="video-modal-title">Add Video Guide</h2>
+          <p id="video-modal-subtitle">Configure tutorial video settings</p>
+        </div>
+        <button class="btn-close-modal" id="close-video-modal-btn" onclick="closeVideoModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="video-form" onsubmit="saveVideoGuide(event)">
+        <input type="hidden" id="video-id">
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="video-title">Video Title</label>
+            <input type="text" id="video-title" placeholder="e.g. How to Add a Sale Entry" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+          </div>
+          
+          <div class="input-group mt-3">
+            <label for="video-desc">Description</label>
+            <textarea id="video-desc" placeholder="e.g. Learn how to record device sales, select brands, scan IMEI..." rows="3" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff; resize: vertical; font-family: inherit;"></textarea>
+          </div>
+
+          <div class="input-group mt-3">
+            <label for="video-duration">Duration Label</label>
+            <input type="text" id="video-duration" placeholder="e.g. 2:15 mins" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+          </div>
+
+          <div class="input-group mt-3">
+            <label for="video-url">Video URL (YouTube/MP4 link)</label>
+            <input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=..." required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+          </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeVideoModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-video-btn-submit">
+            <span>Save Video</span>
+            <i data-lucide="check"></i>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

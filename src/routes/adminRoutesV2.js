@@ -1477,4 +1477,77 @@ router.delete('/catalog/models/:id', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v2/admin/how-to-use-videos
+ * Get list of all video guides.
+ */
+router.get('/how-to-use-videos', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM how_to_use_videos ORDER BY id ASC');
+    return success(res, result.rows);
+  } catch (err) {
+    logger.error('Failed to load video guides', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v2/admin/how-to-use-videos
+ * Add or update a video guide.
+ */
+router.post('/how-to-use-videos', async (req, res) => {
+  const { id, title, description, duration, videoUrl } = req.body;
+  if (!title || !videoUrl) {
+    return res.status(400).json({ success: false, error: 'Title and Video URL are required' });
+  }
+
+  try {
+    if (id) {
+      // Update
+      const result = await query(
+        `UPDATE how_to_use_videos 
+         SET title = $1, description = $2, duration = $3, video_url = $4
+         WHERE id = $5 RETURNING *`,
+        [title.trim(), description?.trim() || '', duration?.trim() || '', videoUrl.trim(), id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'Video guide not found' });
+      }
+      logger.info('Video guide updated', { id, title });
+      return success(res, result.rows[0], 'Video guide updated successfully');
+    } else {
+      // Create
+      const result = await query(
+        `INSERT INTO how_to_use_videos (title, description, duration, video_url) 
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [title.trim(), description?.trim() || '', duration?.trim() || '', videoUrl.trim()]
+      );
+      logger.info('Video guide created', { id: result.rows[0].id, title });
+      return success(res, result.rows[0], 'Video guide created successfully');
+    }
+  } catch (err) {
+    logger.error('Failed to save video guide', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/v2/admin/how-to-use-videos/:id
+ * Delete a video guide.
+ */
+router.delete('/how-to-use-videos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query('DELETE FROM how_to_use_videos WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Video guide not found' });
+    }
+    logger.info('Video guide deleted', { id });
+    return success(res, result.rows[0], 'Video guide deleted successfully');
+  } catch (err) {
+    logger.error('Failed to delete video guide', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

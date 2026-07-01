@@ -1896,6 +1896,8 @@ async function loadAppConfig() {
       document.getElementById('config-website-hero-subtitle').value = config.website_hero_subtitle || '';
       document.getElementById('config-website-about-text').value = config.website_about_text || '';
     }
+    // Fetch how to use videos list
+    fetchVideoGuides();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -3468,4 +3470,148 @@ window.handleDeleteSubscription = async function(subId) {
     showToast(err.message, 'error');
   }
 };
+
+
+// ─── HOW TO USE VIDEOS CRUD ───────────────────────────────────────────────
+let activeVideos = [];
+
+async function fetchVideoGuides() {
+  const tbody = document.getElementById('how-to-use-table-body');
+  if (!tbody) return;
+  
+  tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="spinner" style="margin:auto;"></div></td></tr>`;
+  
+  try {
+    const res = await fetch('/api/v2/admin/how-to-use-videos', {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) throw new Error('Failed to load video guides');
+    
+    const result = await res.json();
+    const videos = result.data || [];
+    activeVideos = videos;
+    
+    if (videos.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">No video guides found</td></tr>`;
+      return;
+    }
+    
+    tbody.innerHTML = videos.map(v => {
+      const escapedVideo = escapeHtml(JSON.stringify(v));
+      return `<tr>
+        <td><strong>${escapeHtml(v.title)}</strong></td>
+        <td style="color:var(--text-muted); font-size:0.85rem;">${escapeHtml(v.description || '—')}</td>
+        <td><span class="badge badge-feature active">${escapeHtml(v.duration || '—')}</span></td>
+        <td><a href="${escapeHtml(v.video_url)}" target="_blank" style="color:#60a5fa; text-decoration:none; font-size:0.85rem;">${escapeHtml(v.video_url)}</a></td>
+        <td style="text-align: right;">
+          <div style="display:flex; gap:0.35rem; justify-content:flex-end;">
+            <button class="btn-action btn-edit" onclick="openEditVideoModal('${escapedVideo}')" title="Edit Video Guide" style="color:#60a5fa; padding:0.35rem 0.60rem; border-radius:8px; background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.25); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+              <i data-lucide="edit-3" style="width:13px;height:13px;"></i>
+            </button>
+            <button class="btn-action btn-delete" onclick="deleteVideoGuide('${v.id}')" title="Delete Video Guide" style="color:var(--danger); padding:0.35rem 0.60rem; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+              <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    
+    lucide.createIcons();
+  } catch (err) {
+    showToast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Error loading video guides</td></tr>`;
+  }
+}
+window.fetchVideoGuides = fetchVideoGuides;
+
+function openVideoModal() {
+  document.getElementById('video-modal-title').textContent = 'Add Video Guide';
+  document.getElementById('video-modal-subtitle').textContent = 'Configure tutorial video settings';
+  document.getElementById('video-id').value = '';
+  document.getElementById('video-title').value = '';
+  document.getElementById('video-desc').value = '';
+  document.getElementById('video-duration').value = '';
+  document.getElementById('video-url').value = '';
+  document.getElementById('video-modal').style.display = 'flex';
+}
+window.openVideoModal = openVideoModal;
+
+function openEditVideoModal(videoJsonStr) {
+  try {
+    const v = JSON.parse(videoJsonStr);
+    document.getElementById('video-modal-title').textContent = 'Edit Video Guide';
+    document.getElementById('video-modal-subtitle').textContent = 'Update video settings';
+    document.getElementById('video-id').value = v.id;
+    document.getElementById('video-title').value = v.title || '';
+    document.getElementById('video-desc').value = v.description || '';
+    document.getElementById('video-duration').value = v.duration || '';
+    document.getElementById('video-url').value = v.video_url || '';
+    document.getElementById('video-modal').style.display = 'flex';
+    lucide.createIcons();
+  } catch (err) {
+    console.error('Error parsing video JSON:', err);
+  }
+}
+window.openEditVideoModal = openEditVideoModal;
+
+function closeVideoModal() {
+  document.getElementById('video-modal').style.display = 'none';
+}
+window.closeVideoModal = closeVideoModal;
+
+async function saveVideoGuide(e) {
+  e.preventDefault();
+  const id = document.getElementById('video-id').value;
+  const title = document.getElementById('video-title').value;
+  const description = document.getElementById('video-desc').value;
+  const duration = document.getElementById('video-duration').value;
+  const videoUrl = document.getElementById('video-url').value;
+  
+  const submitBtn = document.getElementById('save-video-btn-submit');
+  submitBtn.disabled = true;
+  submitBtn.querySelector('span').textContent = 'Saving...';
+  
+  try {
+    const res = await fetch('/api/v2/admin/how-to-use-videos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ id: id ? parseInt(id, 10) : undefined, title, description, duration, videoUrl })
+    });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) {
+      const errRes = await res.json();
+      throw new Error(errRes.error || 'Failed to save video');
+    }
+    showToast('Video guide saved successfully!', 'success');
+    closeVideoModal();
+    fetchVideoGuides();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.querySelector('span').textContent = 'Save Video';
+  }
+}
+window.saveVideoGuide = saveVideoGuide;
+
+async function deleteVideoGuide(id) {
+  if (!confirm('Are you sure you want to delete this video guide?')) return;
+  try {
+    const res = await fetch(`/api/v2/admin/how-to-use-videos/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) throw new Error('Failed to delete video guide');
+    showToast('Video guide deleted successfully!', 'success');
+    fetchVideoGuides();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+window.deleteVideoGuide = deleteVideoGuide;
 
