@@ -146,10 +146,11 @@ const listAllFeatures = async (req, res) => {
  * Public within auth — no shop required.
  */
 const getPlans = async (req, res) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
   let supportWhatsapp = '+918160707979';
   let supportEmail = 'support@mobilekhata.com';
-  let privacyPolicyUrl = 'https://sites.google.com/view/mobilekhata/home';
-  let termsOfServiceUrl = 'https://sites.google.com/view/mobilekhata/terms';
+  let privacyPolicyUrl = `${baseUrl}/privacy.html`;
+  let termsOfServiceUrl = `${baseUrl}/terms.html`;
   let minAppVersionCode = 3;
   let appUpdateUrl = 'https://play.google.com/store/apps/details?id=com.mobilekhata';
 
