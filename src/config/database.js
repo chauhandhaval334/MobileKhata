@@ -94,18 +94,6 @@ const runMigrations = async () => {
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    const countRes = await query('SELECT COUNT(*) FROM how_to_use_videos');
-    if (parseInt(countRes.rows[0].count, 10) === 0) {
-      await query(`
-        INSERT INTO how_to_use_videos (title, description, duration, video_url) VALUES 
-        ('How to Add a Sale Entry', 'Learn how to record device sales, select brands/models, scan IMEI, and print digital receipts.', '2:15 mins', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
-        ('How to Add a Purchase Entry', 'Learn how to add incoming mobile stocks, record supplier details, and manage inventory costs.', '1:48 mins', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
-        ('How to Track Mobile Repairs', 'Manage repair jobs, setup device symptoms, estimate costs, and track status change logs.', '3:04 mins', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
-        ('How to Generate & Export PDF Reports', 'Generate consolidated PDF sales/purchase books and share ledger statements on WhatsApp.', '2:30 mins', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
-        ('Managing App Security & PIN Lock', 'Keep your business transactions secure by setting up and managing a 4-digit PIN lock.', '1:15 mins', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
-      `);
-      logger.info('Database seeded with default how-to-use videos');
-    }
   } catch (err) {
     logger.error('Failed to run schema migrations:', { error: err.message });
   }
