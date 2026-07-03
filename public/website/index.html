@@ -81,38 +81,100 @@
             <div class="phone-screen">
               <!-- Internal vector graphic displaying app layout -->
               <div class="app-ui">
+                <!-- Status Bar -->
+                <div class="app-status-bar">
+                  <span>22:27</span>
+                  <div class="status-bar-icons">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 21l-12-12c4.4-4.4 10.4-5 12-5s7.6.6 12 5l-12 12z"/></svg>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M2 22h20v-20z"/></svg>
+                    <span>46%</span>
+                  </div>
+                </div>
+
+                <!-- Header -->
                 <div class="app-header">
-                  <span>MobileKhata</span>
-                  <div class="premium-badge">👑 Premium</div>
-                </div>
-                <div class="app-card">
-                  <span class="card-title">Today's Sales</span>
-                  <span class="card-amount">₹48,500</span>
-                  <div class="card-trend">📈 +12% from yesterday</div>
-                </div>
-                <div class="app-menu">
-                  <div class="menu-item"><span class="icon">📥</span><span>Purchase</span></div>
-                  <div class="menu-item"><span class="icon">📤</span><span>Sell</span></div>
-                  <div class="menu-item"><span class="icon">🛠️</span><span>Repair</span></div>
-                  <div class="menu-item"><span class="icon">📋</span><span>Reports</span></div>
-                </div>
-                <div class="app-list">
-                  <div class="list-title">Recent Transactions</div>
-                  <div class="list-item">
-                    <div>
-                      <strong>iPhone 15 Pro</strong>
-                      <span>IMEI: 358201... • Sale</span>
-                    </div>
-                    <span class="price positive">₹84,999</span>
+                  <div class="header-text">
+                    <span class="header-title">Parth Mobile Store</span>
+                    <span class="header-date">Thursday, 02 July 2026</span>
                   </div>
-                  <div class="list-item">
-                    <div>
-                      <strong>Galaxy S24</strong>
-                      <span>IMEI: 359482... • Buy</span>
-                    </div>
-                    <span class="price negative">-₹52,000</span>
+                  <div class="header-avatar">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                   </div>
                 </div>
+
+                <!-- Membership Card -->
+                <div class="app-membership-card">
+                  <div class="membership-left">
+                    <span class="membership-star">⭐</span>
+                    <div class="membership-text">
+                      <span class="membership-label">Membership</span>
+                      <span class="membership-status">Premium Active</span>
+                      <span class="membership-expiry">Expires on 02 Jul 2027</span>
+                    </div>
+                  </div>
+                  <span class="membership-chevron">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </span>
+                </div>
+
+                <!-- Grid Menu -->
+                <div class="app-grid-menu">
+                  <!-- Sell Mobile -->
+                  <div class="grid-card">
+                    <div class="grid-icon-wrapper sell">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                    </div>
+                    <span class="grid-title">Sell Mobile</span>
+                    <span class="grid-badge sell">मोबाइल बेचें</span>
+                  </div>
+
+                  <!-- Purchase Mobile -->
+                  <div class="grid-card">
+                    <div class="grid-icon-wrapper purchase">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                    </div>
+                    <span class="grid-title">Purchase Mobile</span>
+                    <span class="grid-badge purchase">मोबाइल खरीदें</span>
+                  </div>
+
+                  <!-- Repair Mobile -->
+                  <div class="grid-card">
+                    <div class="grid-icon-wrapper repair">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    </div>
+                    <span class="grid-title">Repair Mobile</span>
+                    <span class="grid-badge repair">मोबाइल रिपेयर</span>
+                  </div>
+
+                  <!-- Reports -->
+                  <div class="grid-card">
+                    <div class="grid-icon-wrapper reports">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    </div>
+                    <span class="grid-title">Reports</span>
+                    <span class="grid-badge reports">रिपोर्ट देखें</span>
+                  </div>
+                </div>
+
+                <!-- Bottom Bill Book Card -->
+                <div class="app-horizontal-card">
+                  <div class="horizontal-left">
+                    <div class="horizontal-icon-wrapper">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    </div>
+                    <div class="horizontal-text">
+                      <div class="horizontal-header-row">
+                        <span class="horizontal-title">Bill Book</span>
+                        <span class="horizontal-badge">बिल बुक</span>
+                      </div>
+                      <span class="horizontal-desc">Manage all your digital invoices and transactions in one secure hub.</span>
+                    </div>
+                  </div>
+                  <span class="horizontal-chevron">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </span>
+                </div>
+
               </div>
             </div>
           </div>
