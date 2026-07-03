@@ -149,6 +149,7 @@ const getPlans = async (req, res) => {
   let supportWhatsapp = '+918160707979';
   let supportEmail = 'support@mobilekhata.com';
   let privacyPolicyUrl = 'https://sites.google.com/view/mobilekhata/home';
+  let termsOfServiceUrl = 'https://sites.google.com/view/mobilekhata/terms';
   let minAppVersionCode = 3;
   let appUpdateUrl = 'https://play.google.com/store/apps/details?id=com.mobilekhata';
 
@@ -159,6 +160,7 @@ const getPlans = async (req, res) => {
     if (configs.support_whatsapp) supportWhatsapp = configs.support_whatsapp;
     if (configs.support_email) supportEmail = configs.support_email;
     if (configs.privacy_policy_url) privacyPolicyUrl = configs.privacy_policy_url;
+    if (configs.terms_of_service_url) termsOfServiceUrl = configs.terms_of_service_url;
     if (configs.min_app_version_code) minAppVersionCode = parseInt(configs.min_app_version_code, 10);
     if (configs.app_update_url) appUpdateUrl = configs.app_update_url;
   } catch (err) {
@@ -217,6 +219,7 @@ const getPlans = async (req, res) => {
       supportWhatsapp,
       supportEmail,
       privacyPolicyUrl,
+      termsOfServiceUrl,
       minAppVersionCode,
       appUpdateUrl,
       plans: plansRes.rows,
