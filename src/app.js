@@ -175,6 +175,43 @@ app.get('/api/v2/health', (req, res) => {
   });
 });
 
+app.get('/api/v2/config', async (req, res) => {
+  const { query } = require('./config/database');
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  let supportWhatsapp = '+918160707979';
+  let supportEmail = 'support@mobilekhata.com';
+  let privacyPolicyUrl = `${baseUrl}/privacy.html`;
+  let termsOfServiceUrl = `${baseUrl}/terms.html`;
+  let minAppVersionCode = 3;
+  let appUpdateUrl = 'https://play.google.com/store/apps/details?id=com.mobilekhata';
+
+  try {
+    const configRes = await query('SELECT key, value FROM app_config');
+    const configs = {};
+    configRes.rows.forEach(r => { configs[r.key] = r.value; });
+    if (configs.support_whatsapp) supportWhatsapp = configs.support_whatsapp;
+    if (configs.support_email) supportEmail = configs.support_email;
+    if (configs.privacy_policy_url) privacyPolicyUrl = configs.privacy_policy_url;
+    if (configs.terms_of_service_url) termsOfServiceUrl = configs.terms_of_service_url;
+    if (configs.min_app_version_code) minAppVersionCode = parseInt(configs.min_app_version_code, 10);
+    if (configs.app_update_url) appUpdateUrl = configs.app_update_url;
+  } catch (err) {
+    logger.error('Failed to load app_config for public route', { error: err.message });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      supportWhatsapp,
+      supportEmail,
+      privacyPolicyUrl,
+      termsOfServiceUrl,
+      minAppVersionCode,
+      appUpdateUrl
+    }
+  });
+});
+
 // Public DB status endpoint — no auth required, for testing only
 app.get('/api/v1/db-status', async (req, res) => {
   try {
