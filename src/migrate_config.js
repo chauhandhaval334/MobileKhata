@@ -14,7 +14,8 @@ async function run() {
       INSERT INTO app_config (key, value) VALUES
         ('support_whatsapp',   '+918160707979'),
         ('support_email',      'support@mobilekhata.com'),
-        ('privacy_policy_url', 'https://sites.google.com/view/mobilekhata/home')
+        ('privacy_policy_url', '/privacy.html'),
+        ('terms_of_service_url', '/terms.html')
       ON CONFLICT (key) DO NOTHING;
     `);
     console.log('Migration OK');

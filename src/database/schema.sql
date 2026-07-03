@@ -64,7 +64,8 @@ CREATE TABLE IF NOT EXISTS app_config (
 INSERT INTO app_config (key, value) VALUES
   ('support_whatsapp',   '+918160707979'),
   ('support_email',      'support@mobilekhata.com'),
-  ('privacy_policy_url', 'https://sites.google.com/view/mobilekhata/home'),
+  ('privacy_policy_url', '/privacy.html'),
+  ('terms_of_service_url', '/terms.html'),
   ('min_app_version_code', '3'),
   ('app_update_url', 'https://play.google.com/store/apps/details?id=com.mobilekhata'),
   ('website_hero_title', 'Manage Your Mobile Shop with Ease'),
