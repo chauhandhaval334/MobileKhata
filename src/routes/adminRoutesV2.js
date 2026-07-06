@@ -148,6 +148,31 @@ router.get('/activity-feed', async (req, res) => {
       `);
     }
 
+    if (type === 'all' || type === 'register') {
+      parts.push(`
+        SELECT
+          s.id,
+          'register'               AS activity_type,
+          NULL::text               AS sub_type,
+          s.created_at             AS activity_at,
+          s.shop_name,
+          s.owner_name,
+          s.phone_number           AS shop_phone,
+          NULL::text               AS customer_name,
+          NULL::text               AS customer_mobile,
+          NULL::text               AS device_brand,
+          NULL::text               AS device_model,
+          NULL::text               AS imei1,
+          NULL::text               AS storage,
+          NULL::numeric            AS amount,
+          NULL::text               AS payment_method,
+          NULL::text               AS bill_number,
+          NULL::text               AS plan_id,
+          NULL::integer            AS price_paid
+        FROM shops s
+      `);
+    }
+
     if (parts.length === 0) return res.json({ success: true, data: [] });
 
     const unionQuery = `

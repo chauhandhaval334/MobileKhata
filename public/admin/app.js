@@ -805,6 +805,8 @@ async function fetchActivityFeed() {
       } else if (item.activity_type === 'bill') {
         const billColor = item.sub_type === 'GST' ? '#3b82f6' : (item.sub_type === 'Estimate' ? '#f97316' : '#22c55e');
         return `<span class="badge" style="background:${billColor}22;color:${billColor};border:1px solid ${billColor}44;">🧾 Bill · ${escapeHtml(item.sub_type || '')}</span>`;
+      } else if (item.activity_type === 'register') {
+        return `<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);">🚀 Registration</span>`;
       } else {
         const isP = item.sub_type === 'Purchase'; const isR = item.sub_type === 'Repair';
         const col = isP ? '#22c55e' : (isR ? '#f97316' : '#60a5fa');
@@ -826,6 +828,8 @@ async function fetchActivityFeed() {
         details = `<div style="font-weight:600;">${escapeHtml(item.customer_name || '')}</div><div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(item.device_brand || '')} ${escapeHtml(item.device_model || '')} · ${escapeHtml(item.imei1 || '')}</div>`;
       } else if (item.activity_type === 'bill') {
         details = `<div style="font-weight:600;">${escapeHtml(item.customer_name || '')}</div><div style="font-size:0.75rem;color:var(--text-muted);">Bill #${escapeHtml(item.bill_number || '')}</div>`;
+      } else if (item.activity_type === 'register') {
+        details = `<div style="font-weight:600;">New Shop Registered</div><div style="font-size:0.75rem;color:var(--text-muted);">${escapeHtml(item.owner_name || '')} (${escapeHtml(item.shop_phone || '')})</div>`;
       } else {
         details = `<div style="font-weight:600;">${escapeHtml(item.shop_name || '')}</div><div style="font-size:0.75rem;color:var(--text-muted);">Plan: ${escapeHtml(item.plan_id || 'Custom')}</div>`;
       }
@@ -948,6 +952,22 @@ function openActivityInfoModal(itemKey) {
         ${fieldRow('Shop Name', `<strong>${escapeHtml(item.shop_name || '—')}</strong>`)}
         ${fieldRow('Owner', escapeHtml(item.owner_name || '—'))}
         ${fieldRow('Phone', escapeHtml(item.shop_phone || '—'), true)}
+      `)}
+    `;
+  } else if (item.activity_type === 'register') {
+    titleEl.textContent = `New Shop Registered`;
+    idEl.textContent = `Shop ID: ${item.id}`;
+
+    body.innerHTML = `
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:center;">
+        <span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:0.9rem;padding:0.4rem 0.9rem;">🚀 Registration</span>
+      </div>
+
+      ${section('Shop Details', 'store', `
+        ${fieldRow('Shop Name', `<strong>${escapeHtml(item.shop_name || '—')}</strong>`)}
+        ${fieldRow('Owner Name', escapeHtml(item.owner_name || '—'))}
+        ${fieldRow('Phone Number', escapeHtml(item.shop_phone || '—'), true)}
+        ${fieldRow('Registered On', dateStr)}
       `)}
     `;
   }
@@ -1152,6 +1172,9 @@ async function fetchShops() {
             <div class="actions-cell">
               <button class="btn-action" onclick="openFeaturesModal('${shop.id}')" title="Modify Permissions">
                 <i data-lucide="sliders"></i>
+              </button>
+              <button class="btn-action" onclick="openPremiumUserModal('${shop.id}')" title="View Shop Details" style="margin-left: 5px;">
+                <i data-lucide="eye"></i>
               </button>
             </div>
           </td>
