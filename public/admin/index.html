@@ -1512,8 +1512,8 @@
     <div class="modal-card" style="max-width: 700px; width: 90%;">
       <div class="modal-header">
         <div>
-          <h2 id="premium-modal-title">Premium Shop Details</h2>
-          <p id="premium-modal-subtitle">Sync logs, payments, and push alerts</p>
+          <h2 id="premium-modal-title">Shop Business Profile</h2>
+          <p id="premium-modal-subtitle">Full business profile, logs, payments, and push alerts</p>
         </div>
         <button class="btn-close-modal" id="close-premium-modal-btn">
           <i data-lucide="x"></i>
@@ -1521,22 +1521,42 @@
       </div>
       <div class="modal-body" style="padding: 0 1.5rem 1.5rem 1.5rem;">
         <!-- Shop overview info -->
-        <div class="shop-detail-summary mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: var(--bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-soft); margin-top: 1rem;">
+        <div class="shop-detail-summary mb-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; background: var(--bg); padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border-soft); margin-top: 1rem;">
           <div>
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Shop ID</div>
-            <code id="pm-shop-id" style="font-size: 0.85rem; color: var(--primary);">—</code>
-          </div>
-          <div>
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Current Plan / Expiry</div>
-            <div id="pm-shop-plan" style="font-weight: 600; font-size: 0.85rem; color: #fff;">—</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Shop Name</div>
+            <div id="pm-shop-name" style="font-weight: 700; font-size: 0.95rem; color: #fff;">—</div>
           </div>
           <div>
             <div style="font-size: 0.8rem; color: var(--text-muted);">Owner / Phone</div>
             <div id="pm-shop-owner" style="font-size: 0.85rem; color: #fff;">—</div>
           </div>
           <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">District</div>
+            <div id="pm-shop-district" style="font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">GST Number</div>
+            <div id="pm-shop-gst" style="font-size: 0.85rem; color: #fff; font-family: monospace;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">CCTV Status</div>
+            <div id="pm-shop-cctv" style="font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Account Status</div>
+            <div id="pm-shop-status" style="font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Current Plan / Expiry</div>
+            <div id="pm-shop-plan" style="font-weight: 600; font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Registered On</div>
+            <div id="pm-shop-registered" style="font-size: 0.85rem; color: #fff;">—</div>
+          </div>
+          <div>
             <div style="font-size: 0.8rem; color: var(--text-muted);">Device ID</div>
-            <code id="pm-shop-device" style="font-size: 0.85rem; color: #fff;">—</code>
+            <code id="pm-shop-device" style="font-size: 0.82rem; color: var(--primary); word-break: break-all;">—</code>
           </div>
         </div>
 

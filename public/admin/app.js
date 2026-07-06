@@ -2467,9 +2467,14 @@ async function openPremiumUserModal(shopId) {
     const data = result.data;
     const profile = data.profile;
 
-    document.getElementById('pm-shop-id').textContent = profile.id;
-    document.getElementById('pm-shop-plan').textContent = profile.premium_expires_at ? `Expires: ${new Date(profile.premium_expires_at).toLocaleDateString()}` : 'No active plan';
-    document.getElementById('pm-shop-owner').textContent = `${profile.owner_name || 'N/A'} (${profile.phone_number})`;
+    document.getElementById('pm-shop-name').textContent = profile.shop_name || 'N/A';
+    document.getElementById('pm-shop-owner').textContent = `${profile.owner_name || 'N/A'} (${profile.phone_number || 'N/A'})`;
+    document.getElementById('pm-shop-district').textContent = profile.district || 'N/A';
+    document.getElementById('pm-shop-gst').textContent = profile.gst_number || 'N/A';
+    document.getElementById('pm-shop-cctv').textContent = profile.has_cctv ? '✅ Yes' : '❌ No';
+    document.getElementById('pm-shop-status').textContent = profile.is_active ? '🟢 Active' : '🔴 Blocked';
+    document.getElementById('pm-shop-plan').textContent = profile.premium_expires_at ? `Expires: ${new Date(profile.premium_expires_at).toLocaleDateString('en-IN')}` : 'No active plan';
+    document.getElementById('pm-shop-registered').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
     document.getElementById('pm-shop-device').textContent = profile.active_device_id || 'No device allocated';
 
     // Populate payments
