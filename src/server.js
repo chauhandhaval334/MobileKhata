@@ -9,6 +9,7 @@ const logger = require('./utils/logger');
 const { testConnection } = require('./config/database');
 const { initFirebase } = require('./config/firebase');
 const { initUploadDirs } = require('./services/uploadService');
+const { initBackupScheduler } = require('./services/backupService');
 
 let server;
 
@@ -29,6 +30,9 @@ const start = async () => {
 
     // 3. Ensure upload directories exist
     initUploadDirs();
+
+    // 3b. Initialise Database Backup Scheduler
+    initBackupScheduler();
 
     // 4. Start HTTP server
     server = app.listen(env.PORT, '0.0.0.0', () => {

@@ -29,6 +29,7 @@ const env = {
     privateKey: process.env.FIREBASE_PRIVATE_KEY
       ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
       : undefined,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   },
 
   // File uploads
@@ -64,6 +65,7 @@ if (env.NODE_ENV === 'production') {
     'FIREBASE_PROJECT_ID',
     'FIREBASE_CLIENT_EMAIL',
     'FIREBASE_PRIVATE_KEY',
+    'FIREBASE_STORAGE_BUCKET',
   ];
   required.forEach((key) => {
     if (!process.env[key]) {

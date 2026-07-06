@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+.github
+logs
+uploads
+scratch
+Dockerfile
+.dockerignore
+AI_MEMORY.md
+PRD.md
+README.md

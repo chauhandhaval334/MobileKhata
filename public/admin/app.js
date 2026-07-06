@@ -309,6 +309,44 @@ function setupEventListeners() {
     appConfigForm.addEventListener('submit', handleSaveAppConfig);
   }
 
+  // Database Backup Config Form
+  const backupConfigForm = document.getElementById('backup-config-form');
+  if (backupConfigForm) {
+    backupConfigForm.addEventListener('submit', handleSaveBackupConfig);
+  }
+
+  // Backup Manual Trigger Button
+  const btnTriggerManualBackup = document.getElementById('btn-trigger-manual-backup');
+  if (btnTriggerManualBackup) {
+    btnTriggerManualBackup.addEventListener('click', handleTriggerManualBackup);
+  }
+
+  // Refresh Backups List Button
+  const btnRefreshBackupsList = document.getElementById('btn-refresh-backups-list');
+  if (btnRefreshBackupsList) {
+    btnRefreshBackupsList.addEventListener('click', () => {
+      showToast('Refreshing backup history...', 'info');
+      fetchBackupsList();
+    });
+  }
+
+  // Backup toggle effect on input-group visibility
+  const backupEnableToggle = document.getElementById('backup-enable-toggle');
+  if (backupEnableToggle) {
+    backupEnableToggle.addEventListener('change', (e) => {
+      const timeGroup = document.getElementById('backup-time-group');
+      if (timeGroup) {
+        if (e.target.checked) {
+          timeGroup.style.opacity = '1';
+          timeGroup.style.pointerEvents = 'auto';
+        } else {
+          timeGroup.style.opacity = '0.5';
+          timeGroup.style.pointerEvents = 'none';
+        }
+      }
+    });
+  }
+
   // Website Config Form
   const websiteConfigForm = document.getElementById('website-config-form');
   if (websiteConfigForm) {
@@ -591,6 +629,7 @@ function switchTab(tab) {
     feedback: { title: 'Feedback & Improvement Center', sub: 'Manage user suggestions, bug reports, and responses' },
     config: { title: 'App Configuration', sub: 'Manage global platform configuration synced to mobile apps' },
     website: { title: 'Website Content', sub: 'Manage public landing page content' },
+    backups: { title: 'Database Backups & Recovery', sub: 'Trigger database dumps, schedule automated backups, and manage storage' },
     catalog: { title: 'Device Catalog Management', sub: 'Add, modify, or remove brands and models available in the app' }
   };
 
@@ -618,6 +657,9 @@ function switchTab(tab) {
     loadFeedbackList();
   } else if (tab === 'config' || tab === 'website') {
     loadAppConfig();
+  } else if (tab === 'backups') {
+    fetchBackupsConfig();
+    fetchBackupsList();
   } else if (tab === 'catalog') {
     fetchCatalogAdmin();
   }
@@ -646,6 +688,9 @@ function loadDashboardData() {
     loadFeedbackList();
   } else if (currentTab === 'config' || currentTab === 'website') {
     loadAppConfig();
+  } else if (currentTab === 'backups') {
+    fetchBackupsConfig();
+    fetchBackupsList();
   } else if (currentTab === 'catalog') {
     fetchCatalogAdmin();
   }
@@ -3614,4 +3659,225 @@ async function deleteVideoGuide(id) {
   }
 }
 window.deleteVideoGuide = deleteVideoGuide;
+
+// ─── DATABASE BACKUPS TAB FLOW ─────────────────────────────────────────────
+async function fetchBackupsConfig() {
+  try {
+    const res = await fetch('/api/v2/admin/backups/config', {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) throw new Error('Failed to load backup configurations');
+    
+    const result = await res.json();
+    const config = result.data;
+
+    const toggle = document.getElementById('backup-enable-toggle');
+    const timeInput = document.getElementById('backup-time-input');
+    const timeGroup = document.getElementById('backup-time-group');
+
+    if (toggle) toggle.checked = config.enabled;
+    if (timeInput) timeInput.value = config.time || '02:00';
+    
+    if (timeGroup) {
+      if (config.enabled) {
+        timeGroup.style.opacity = '1';
+        timeGroup.style.pointerEvents = 'auto';
+      } else {
+        timeGroup.style.opacity = '0.5';
+        timeGroup.style.pointerEvents = 'none';
+      }
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+window.fetchBackupsConfig = fetchBackupsConfig;
+
+async function handleSaveBackupConfig(e) {
+  e.preventDefault();
+  const enabled = document.getElementById('backup-enable-toggle').checked;
+  const time = document.getElementById('backup-time-input').value;
+
+  const saveBtn = document.getElementById('save-backup-config-btn');
+  saveBtn.disabled = true;
+  saveBtn.querySelector('span').textContent = 'Saving Settings...';
+
+  try {
+    const res = await fetch('/api/v2/admin/backups/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ enabled, time })
+    });
+
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) {
+      const errRes = await res.json().catch(() => ({}));
+      throw new Error(errRes.error || 'Failed to update backup configurations');
+    }
+
+    showToast('Database backup configuration saved!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.querySelector('span').textContent = 'Save Scheduling Settings';
+  }
+}
+window.handleSaveBackupConfig = handleSaveBackupConfig;
+
+async function fetchBackupsList() {
+  const tbody = document.getElementById('backups-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="spinner" style="margin:auto;"></div><p style="margin-top:0.5rem;color:var(--text-muted);">Loading backup history...</p></td></tr>`;
+
+  try {
+    const res = await fetch('/api/v2/admin/backups', {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) throw new Error('Failed to load backup lists');
+
+    const result = await res.json();
+    const backups = result.data || [];
+
+    if (backups.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">No backup dumps found in Firebase Storage</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = backups.map(b => {
+      const t = new Date(b.createdAt);
+      const dateStr = t.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + t.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+      const sizeMB = (b.sizeBytes / (1024 * 1024)).toFixed(2);
+      const modeColor = b.backupMode === 'manual' ? '#c084fc' : '#22c55e';
+      const modeLabel = b.backupMode === 'manual' ? 'Manual' : 'Scheduled';
+
+      return `
+        <tr>
+          <td style="font-weight: 500; font-family: monospace; color: #fff;">${escapeHtml(b.fileName)}</td>
+          <td>${dateStr}</td>
+          <td>${sizeMB} MB</td>
+          <td>
+            <span class="badge" style="background:${modeColor}22; color:${modeColor}; border:1px solid ${modeColor}44;">${modeLabel}</span>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+              <button onclick="handleDownloadBackup('${escapeHtml(b.fileName)}')" class="btn btn-secondary flex-center" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: 30px;">
+                <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                <span>Download</span>
+              </button>
+              <button onclick="handleDeleteBackup('${escapeHtml(b.fileName)}')" class="btn btn-danger flex-center" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #ef4444; border: none; color: #fff; border-radius: 6px; cursor: pointer; height: 30px;">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                <span>Delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    lucide.createIcons();
+  } catch (err) {
+    showToast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Error loading backup list</td></tr>`;
+  }
+}
+window.fetchBackupsList = fetchBackupsList;
+
+async function handleTriggerManualBackup() {
+  const triggerBtn = document.getElementById('btn-trigger-manual-backup');
+  const originalHtml = triggerBtn.innerHTML;
+  
+  triggerBtn.disabled = true;
+  triggerBtn.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div><span>Backing up database...</span>`;
+
+  showToast('Initiating manual database backup. Please wait...', 'info');
+
+  try {
+    const res = await fetch('/api/v2/admin/backups/trigger', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) {
+      const errRes = await res.json().catch(() => ({}));
+      throw new Error(errRes.error || 'Failed to trigger backup');
+    }
+
+    const result = await res.json();
+    const info = result.data;
+
+    showToast('Database backup created and uploaded successfully!', 'success');
+
+    // Display info card
+    const statusCard = document.getElementById('manual-backup-status-card');
+    if (statusCard) {
+      statusCard.style.display = 'block';
+      document.getElementById('backup-status-filename').textContent = info.fileName;
+      document.getElementById('backup-status-filesize').textContent = (info.sizeBytes / (1024 * 1024)).toFixed(2) + ' MB';
+      
+      const t = new Date(info.createdAt);
+      document.getElementById('backup-status-time').textContent = t.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + t.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+    }
+
+    // Refresh history list
+    fetchBackupsList();
+
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    triggerBtn.disabled = false;
+    triggerBtn.innerHTML = originalHtml;
+  }
+}
+window.handleTriggerManualBackup = handleTriggerManualBackup;
+
+async function handleDownloadBackup(fileName) {
+  try {
+    const res = await fetch(`/api/v2/admin/backups/download/${encodeURIComponent(fileName)}`, {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) throw new Error('Failed to generate download link');
+    
+    const result = await res.json();
+    const downloadUrl = result.data.downloadUrl;
+    
+    window.open(downloadUrl, '_blank');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+window.handleDownloadBackup = handleDownloadBackup;
+
+async function handleDeleteBackup(fileName) {
+  if (!confirm(`Are you sure you want to permanently delete backup "${fileName}" from Firebase Storage?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/v2/admin/backups/${encodeURIComponent(fileName)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+
+    if (res.status === 401 || res.status === 403) { handleUnauthorizedError(); return; }
+    if (!res.ok) {
+      const errRes = await res.json().catch(() => ({}));
+      throw new Error(errRes.error || 'Failed to delete backup file');
+    }
+
+    showToast('Backup file deleted successfully!', 'success');
+    fetchBackupsList();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+window.handleDeleteBackup = handleDeleteBackup;
 

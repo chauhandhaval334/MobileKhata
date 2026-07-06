@@ -36,6 +36,7 @@ const initFirebase = () => {
         clientEmail: env.firebase.clientEmail,
         privateKey: env.firebase.privateKey,
       }),
+      storageBucket: env.firebase.storageBucket,
     });
     logger.info('Firebase Admin SDK initialised', {
       projectId: env.firebase.projectId,

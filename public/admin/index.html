@@ -165,6 +165,10 @@
           <i data-lucide="settings"></i>
           <span>App Config</span>
         </a>
+        <a href="#" class="menu-item" data-tab="backups">
+          <i data-lucide="database"></i>
+          <span>Database Backups</span>
+        </a>
         <a href="#" class="menu-item" data-tab="website">
           <i data-lucide="globe"></i>
           <span>Website Content</span>
@@ -919,6 +923,112 @@
           </div>
         </div>
       </section>
+
+      <!-- ─── TAB: DATABASE BACKUPS ────────────────────────────────────────── -->
+      <section id="tab-backups" class="tab-panel">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+          
+          <!-- Backup Scheduler Config Card -->
+          <div class="card" style="padding: 1.5rem;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+              <i data-lucide="calendar" style="width: 20px; height: 20px;"></i>
+              <span>Backup Scheduling</span>
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Configure automated daily database backups to Firebase Storage. The execution time is calculated in Indian Standard Time (IST).</p>
+            
+            <form id="backup-config-form">
+              <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 1rem; border-radius: 10px; border: 1px solid var(--border-soft); margin-bottom: 1.25rem;">
+                <div>
+                  <span style="font-weight: 500; display: block; color: #fff;">Enable Automated Backup</span>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Runs pg_dump daily at the specified time</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="backup-enable-toggle">
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="input-group" id="backup-time-group" style="transition: opacity 0.2s ease;">
+                <label for="backup-time-input">Execution Time (IST, 24-hour)</label>
+                <input type="time" id="backup-time-input" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff;">
+              </div>
+
+              <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" id="save-backup-config-btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+                  <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                  <span>Save Scheduling Settings</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Manual Backup Trigger Card -->
+          <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="margin-top: 0; margin-bottom: 1rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="database" style="width: 20px; height: 20px;"></i>
+                <span>Manual Backup</span>
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Trigger an immediate full database backup. The system will run pg_dump, compress the result, and upload it directly to your secure Firebase Storage bucket.</p>
+              
+              <div id="manual-backup-status-card" class="info-list" style="display: none; background: var(--bg-secondary); padding: 1rem; border-radius: 10px; border: 1px solid var(--border-soft); margin-bottom: 1.5rem;">
+                <div class="info-item">
+                  <span class="info-key">Last Backup File</span>
+                  <span class="info-val" id="backup-status-filename" style="word-break: break-all;">-</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">File Size</span>
+                  <span class="info-val" id="backup-status-filesize">-</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-key">Timestamp</span>
+                  <span class="info-val" id="backup-status-time">-</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <button class="btn btn-primary" id="btn-trigger-manual-backup" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.8rem 1rem;">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+                <span>Backup Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup History List Card -->
+        <div class="data-card mt-4" style="margin-top: 1.5rem;">
+          <div class="card-header border-bottom flex-between" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem;">
+            <div>
+              <h3>Backup History</h3>
+              <p>Download or delete previously generated database dumps stored in Firebase Storage (`backups/` folder).</p>
+            </div>
+            <button class="btn btn-secondary flex-center" id="btn-refresh-backups-list" style="padding: 0.5rem 1rem; border-radius: 8px;">
+              <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+              <span>Refresh History</span>
+            </button>
+          </div>
+          
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Created Date</th>
+                  <th>File Size</th>
+                  <th>Mode</th>
+                  <th style="text-align: right; width: 200px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="backups-table-body">
+                <tr><td colspan="5" class="text-center py-4" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">Loading backup history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+
 
       <!-- ─── TAB: WEBSITE CONTENT ───────────────────────────────────────── -->
       <section id="tab-website" class="tab-panel">

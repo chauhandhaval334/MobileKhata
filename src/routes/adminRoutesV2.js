@@ -8,6 +8,7 @@ const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth');
 const { success, paginate } = require('../utils/response');
 const { getMaintenanceMode, setMaintenanceMode } = require('../utils/maintenanceStore');
 const logger = require('../utils/logger');
+const backupService = require('../services/backupService');
 
 const router = Router();
 
@@ -1546,6 +1547,121 @@ router.delete('/how-to-use-videos/:id', async (req, res) => {
     return success(res, result.rows[0], 'Video guide deleted successfully');
   } catch (err) {
     logger.error('Failed to delete video guide', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v2/admin/backups
+ * List all backup files in Firebase Storage backups/ directory.
+ */
+router.get('/backups', async (req, res) => {
+  try {
+    const list = await backupService.listBackups();
+    return success(res, list);
+  } catch (err) {
+    logger.error('Failed to list backups:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v2/admin/backups/trigger
+ * Manually trigger database backup.
+ */
+router.post('/backups/trigger', async (req, res) => {
+  try {
+    const backupInfo = await backupService.runBackup('manual');
+    return success(res, backupInfo, 'Database backup created successfully');
+  } catch (err) {
+    logger.error('Manual backup trigger failed:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v2/admin/backups/download/:filename
+ * Generate signed url to download database backup.
+ */
+router.get('/backups/download/:filename', async (req, res) => {
+  const { filename } = req.params;
+  try {
+    const downloadUrl = await backupService.getBackupDownloadUrl(filename);
+    return success(res, { downloadUrl });
+  } catch (err) {
+    logger.error('Failed to generate backup download URL:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/v2/admin/backups/:filename
+ * Delete backup from storage.
+ */
+router.delete('/backups/:filename', async (req, res) => {
+  const { filename } = req.params;
+  try {
+    await backupService.deleteBackup(filename);
+    return success(res, null, 'Backup deleted successfully');
+  } catch (err) {
+    logger.error('Failed to delete backup:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v2/admin/backups/config
+ * Get database backup scheduler settings.
+ */
+router.get('/backups/config', async (req, res) => {
+  try {
+    const enabledRes = await query(`SELECT value FROM app_config WHERE key = 'backup_enabled'`);
+    const timeRes = await query(`SELECT value FROM app_config WHERE key = 'backup_time'`);
+
+    const enabled = enabledRes.rows.length > 0 ? enabledRes.rows[0].value === 'true' : false;
+    const time = timeRes.rows.length > 0 ? timeRes.rows[0].value : '02:00';
+
+    return success(res, { enabled, time });
+  } catch (err) {
+    logger.error('Failed to get backup config:', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v2/admin/backups/config
+ * Update database backup scheduler settings.
+ */
+router.post('/backups/config', async (req, res) => {
+  const { enabled, time } = req.body;
+  
+  if (enabled === undefined || !time || !/^\d{2}:\d{2}$/.test(time)) {
+    return res.status(400).json({ success: false, error: 'enabled (boolean) and time (HH:MM) are required' });
+  }
+
+  try {
+    const enabledStr = enabled ? 'true' : 'false';
+
+    await query(
+      `INSERT INTO app_config (key, value, updated_at)
+       VALUES ('backup_enabled', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [enabledStr]
+    );
+
+    await query(
+      `INSERT INTO app_config (key, value, updated_at)
+       VALUES ('backup_time', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [time]
+    );
+
+    backupService.updateSchedulerConfig(enabled, time);
+
+    logger.info('Database backup config updated', { enabled, time });
+    return success(res, { enabled, time }, 'Backup settings saved successfully');
+  } catch (err) {
+    logger.error('Failed to update backup config:', { error: err.message });
     return res.status(500).json({ success: false, error: err.message });
   }
 });
