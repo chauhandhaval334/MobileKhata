@@ -2485,14 +2485,21 @@ async function openPremiumUserModal(shopId) {
     const profile = data.profile;
 
     document.getElementById('pm-shop-name').textContent = profile.shop_name || 'N/A';
-    document.getElementById('pm-shop-owner').textContent = `${profile.owner_name || 'N/A'} (${profile.phone_number || 'N/A'})`;
+    document.getElementById('pm-shop-owner-name').textContent = profile.owner_name || 'N/A';
+    document.getElementById('pm-shop-phone').textContent = profile.phone_number || 'N/A';
     document.getElementById('pm-shop-district').textContent = profile.district || 'N/A';
     document.getElementById('pm-shop-gst').textContent = profile.gst_number || 'N/A';
     document.getElementById('pm-shop-cctv').textContent = profile.has_cctv ? '✅ Yes' : '❌ No';
+    document.getElementById('pm-shop-retail-id').textContent = profile.retail_id || 'N/A';
+    document.getElementById('pm-shop-licence').textContent = profile.licence_number || 'N/A';
     document.getElementById('pm-shop-status').textContent = profile.is_active ? '🟢 Active' : '🔴 Blocked';
     document.getElementById('pm-shop-plan').textContent = profile.premium_expires_at ? `Expires: ${new Date(profile.premium_expires_at).toLocaleDateString('en-IN')}` : 'No active plan';
     document.getElementById('pm-shop-registered').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
     document.getElementById('pm-shop-device').textContent = profile.active_device_id || 'No device allocated';
+    document.getElementById('pm-shop-address').textContent = profile.shop_address || 'No address provided';
+    document.getElementById('pm-shop-remarks').textContent = profile.biz_remarks || 'No remarks added';
+    document.getElementById('pm-shop-firebase-uid').textContent = profile.firebase_uid || 'N/A';
+    document.getElementById('pm-shop-id').textContent = profile.id || 'N/A';
 
     // Populate payments
     const paymentsTbody = document.getElementById('pm-payments-tbody');
