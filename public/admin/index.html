@@ -1609,6 +1609,7 @@
         <!-- Sub-tabs inside Modal -->
         <div class="modal-tabs" style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-soft); margin-bottom: 1rem; padding-bottom: 0.5rem;">
           <button class="modal-tab-btn active" data-subtab="pm-payments" style="background: none; border: none; color: #fff; border-bottom: 2px solid var(--primary); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Payments</button>
+          <button class="modal-tab-btn" data-subtab="pm-bills" style="background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Bills Book</button>
           <button class="modal-tab-btn" data-subtab="pm-logs" style="background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Sync History</button>
           <button class="modal-tab-btn" data-subtab="pm-notify" style="background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Send Alert</button>
         </div>
@@ -1626,6 +1627,28 @@
                 </tr>
               </thead>
               <tbody id="pm-payments-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Tab: Bills Book -->
+        <div id="subtab-pm-bills" class="modal-tab-panel" style="display: none;">
+          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+            <table class="data-table" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th>Bill Number</th>
+                  <th>Type</th>
+                  <th>Customer Name</th>
+                  <th>Mobile</th>
+                  <th>Grand Total</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="pm-bills-tbody">
                 <!-- Loaded dynamically -->
               </tbody>
             </table>

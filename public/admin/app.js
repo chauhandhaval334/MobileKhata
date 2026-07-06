@@ -2538,6 +2538,32 @@ async function openPremiumUserModal(shopId) {
       }).join('');
     }
 
+    // Populate bills
+    const billsTbody = document.getElementById('pm-bills-tbody');
+    if (!data.bills || data.bills.length === 0) {
+      billsTbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No custom bills synced yet.</td></tr>`;
+    } else {
+      billsTbody.innerHTML = data.bills.map(b => {
+        const dateStr = b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN') : 'N/A';
+        let statusBadge = 'badge-secondary';
+        if (b.payment_status === 'Paid') statusBadge = 'badge-success';
+        if (b.payment_status === 'Unpaid') statusBadge = 'badge-danger';
+        if (b.payment_status === 'Partial Payment') statusBadge = 'badge-warning';
+
+        return `
+          <tr>
+            <td><strong>${b.bill_number}</strong></td>
+            <td><code style="font-size:0.75rem">${b.bill_type || 'Invoice'}</code></td>
+            <td>${b.customer_name || 'N/A'}</td>
+            <td><code>${b.customer_mobile || 'N/A'}</code></td>
+            <td><strong>₹${b.grand_total}</strong></td>
+            <td><span class="badge ${statusBadge}">${b.payment_status}</span></td>
+            <td>${dateStr}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     modal.classList.add('active');
     lucide.createIcons();
 

@@ -1170,15 +1170,17 @@ router.get('/premium-users/:shopId/details', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Shop profile not found' });
     }
 
-    const [payments, syncLogs] = await Promise.all([
+    const [payments, syncLogs, bills] = await Promise.all([
       query('SELECT * FROM shop_plan_activations WHERE shop_id = $1 ORDER BY activated_at DESC', [shopId]),
-      query('SELECT synced_at, entity_type, operation, sync_status, android_device_id FROM sync_log WHERE shop_id = $1 ORDER BY synced_at DESC LIMIT 50', [shopId])
+      query('SELECT synced_at, entity_type, operation, sync_status, android_device_id FROM sync_log WHERE shop_id = $1 ORDER BY synced_at DESC LIMIT 50', [shopId]),
+      query('SELECT bill_number, bill_type, customer_name, customer_mobile, grand_total, payment_status, created_at FROM bills WHERE shop_id = $1 ORDER BY created_at_millis DESC LIMIT 100', [shopId])
     ]);
 
     return success(res, {
       profile: shopRes.rows[0],
       payments: payments.rows,
-      logs: syncLogs.rows
+      logs: syncLogs.rows,
+      bills: bills.rows
     });
   } catch (err) {
     logger.error('Failed to load shop audit details', { error: err.message });
