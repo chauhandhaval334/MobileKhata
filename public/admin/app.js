@@ -521,6 +521,23 @@ function setupEventListeners() {
       fetchDeviceLogins(false);
     });
   }
+
+  // Sidebar Toggle Drawer
+  const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebarToggleBtn && sidebar) {
+    sidebarToggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+    });
+
+    // Restore sidebar state on load
+    const savedState = localStorage.getItem('sidebarCollapsed');
+    if (savedState === 'true') {
+      sidebar.classList.add('collapsed');
+    }
+  }
 }
 
 function updateSortIndicators() {
