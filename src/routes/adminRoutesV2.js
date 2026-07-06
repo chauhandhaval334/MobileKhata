@@ -482,33 +482,49 @@ router.get('/shops/:shopId/transactions', async (req, res) => {
   const { page = 1, limit = 50, type, from, to } = req.query;
   const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
-  const conditions = ['t.shop_id = $1'];
+  const conditions = ['q.shop_id = $1'];
   const params = [shopId];
   let idx = 2;
 
-  if (type && ['Sale', 'Purchase', 'Repair'].includes(type)) {
-    conditions.push(`t.txn_type = $${idx++}`);
+  if (type && ['Sale', 'Purchase', 'Repair', 'Custom Bill'].includes(type)) {
+    conditions.push(`q.txn_type = $${idx++}`);
     params.push(type);
   }
-  if (from) { conditions.push(`t.txn_date >= $${idx++}`); params.push(new Date(from).toISOString()); }
-  if (to)   { conditions.push(`t.txn_date <= $${idx++}`); params.push(new Date(to).toISOString()); }
+  if (from) { conditions.push(`q.txn_date >= $${idx++}`); params.push(new Date(from).toISOString()); }
+  if (to)   { conditions.push(`q.txn_date <= $${idx++}`); params.push(new Date(to).toISOString()); }
 
   const where = conditions.join(' AND ');
 
+  const baseQuery = `
+    SELECT * FROM (
+      SELECT t.id, t.txn_type, t.amount, t.payment_method, t.remarks, t.txn_date,
+             d.brand, d.model, d.imei1, d.storage, d.color,
+             c.full_name AS customer_name, c.mobile AS customer_mobile,
+             t.shop_id
+      FROM transactions t
+      JOIN devices d   ON d.id = t.device_id
+      JOIN customers c ON c.id = t.customer_id
+
+      UNION ALL
+
+      SELECT b.id, 'Custom Bill' AS txn_type, CAST(b.grand_total AS INTEGER) AS amount,
+             b.payment_method, 'Bill No: ' || b.bill_number || ' | Status: ' || b.payment_status AS remarks,
+             b.created_at AS txn_date, 'Custom' AS brand, b.bill_type AS model,
+             b.bill_number AS imei1, '' AS storage, '' AS color,
+             b.customer_name, b.customer_mobile, b.shop_id
+      FROM bills b
+    ) q
+    WHERE ${where}
+  `;
+
   const [rowsRes, countRes] = await Promise.all([
     query(
-      `SELECT t.id, t.txn_type, t.amount, t.payment_method, t.remarks, t.txn_date,
-              d.brand, d.model, d.imei1, d.storage, d.color,
-              c.full_name AS customer_name, c.mobile AS customer_mobile
-       FROM transactions t
-       JOIN devices d   ON d.id = t.device_id
-       JOIN customers c ON c.id = t.customer_id
-       WHERE ${where}
-       ORDER BY t.txn_date DESC
+      `${baseQuery}
+       ORDER BY q.txn_date DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, parseInt(limit, 10), offset]
     ),
-    query(`SELECT COUNT(*) AS total FROM transactions t WHERE ${where}`, params),
+    query(`SELECT COUNT(*) AS total FROM (${baseQuery}) c`, params),
   ]);
 
   return paginate(res, rowsRes.rows, parseInt(countRes.rows[0].total, 10), parseInt(page, 10), parseInt(limit, 10));
