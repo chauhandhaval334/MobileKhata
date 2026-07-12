@@ -22,7 +22,7 @@ router.post(
     body('transactions.*.transactionId').notEmpty(),
     body('transactions.*.transactionType').isIn(['Purchase', 'Sale', 'Repair']),
     body('transactions.*.amount').isInt({ min: 0 }),
-    body('transactions.*.imei1').trim().notEmpty(),
+    body('transactions.*.imei1').optional({ checkFalsy: true }).trim(),
     body('transactions.*.customerName').trim().notEmpty(),
     body('transactions.*.customerMobile').trim().notEmpty(),
     body('transactions.*.createdAtMillis').isNumeric(),

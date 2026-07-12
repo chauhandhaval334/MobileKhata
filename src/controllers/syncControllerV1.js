@@ -87,9 +87,12 @@ const pushSync = async (req, res) => {
       await withTransaction(async (client) => {
         // Upsert device
         let deviceId;
+        const imei1Val = (entry.imei1 || '').trim();
+        const imei2Val = (entry.imei2 || '').trim();
+
         const existingDevice = await client.query(
           'SELECT id FROM devices WHERE shop_id=$1 AND imei1=$2 ORDER BY created_at DESC LIMIT 1',
-          [shopId, entry.imei1]
+          [shopId, imei1Val]
         );
 
         if (existingDevice.rows.length > 0) {
@@ -99,13 +102,13 @@ const pushSync = async (req, res) => {
             `UPDATE devices SET brand=$1, model=$2, storage=$3, color=$4,
              condition_label=$5, imei2=$6, updated_at=NOW() WHERE id=$7`,
             [entry.brand, entry.model, entry.storage || '', entry.color || '',
-             entry.condition || '', entry.imei2 || '', deviceId]
+             entry.condition || '', imei2Val, deviceId]
           );
         } else {
           const devRes = await client.query(
             `INSERT INTO devices (shop_id, imei1, imei2, brand, model, storage, color, condition_label)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-            [shopId, entry.imei1, entry.imei2 || '', entry.brand, entry.model,
+            [shopId, imei1Val, imei2Val, entry.brand, entry.model,
              entry.storage || '', entry.color || '', entry.condition || '']
           );
           deviceId = devRes.rows[0].id;
@@ -154,7 +157,7 @@ const pushSync = async (req, res) => {
              (shop_id, transaction_id, device_id, imei1, imei2,
               event_type, title, value, event_date)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [shopId, txnRes.rows[0].id, deviceId, entry.imei1, entry.imei2 || '',
+           [shopId, txnRes.rows[0].id, deviceId, imei1Val, imei2Val,
            entry.transactionType,
            `${entry.transactionType}: ${entry.brand} ${entry.model}`,
            `₹${entry.amount}`, txnDate]
